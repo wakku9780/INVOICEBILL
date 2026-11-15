@@ -1,0 +1,78 @@
+<UserControl x:Class="SareeBilling.Desktop.Views.DashboardView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:nav="clr-namespace:SareeBilling.Desktop.Navigation">
+    <ScrollViewer VerticalScrollBarVisibility="Auto">
+        <StackPanel>
+            <Border Style="{StaticResource InfoBox}" Margin="0,0,16,20" HorizontalAlignment="Left" MaxWidth="900"
+                    Visibility="{Binding IsCompanySetupNeeded, Converter={StaticResource BoolToVisibility}}">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource PrimaryButton}" Content="Set up now"
+                            Margin="16,0,0,0" VerticalAlignment="Center"
+                            Command="{Binding OpenPageCommand}" CommandParameter="{x:Static nav:AppPage.CompanySettings}" />
+                    <StackPanel VerticalAlignment="Center">
+                        <TextBlock Text="First step: enter your company details" FontWeight="SemiBold" />
+                        <TextBlock Style="{StaticResource MutedText}"
+                                   Text="Your name, address and GSTIN are needed before you can create invoices." />
+                    </StackPanel>
+                </DockPanel>
+            </Border>
+
+            <TextBlock Style="{StaticResource SectionTitleText}" Text="Quick actions" Margin="0,0,0,12" />
+
+            <WrapPanel>
+                <Button Style="{StaticResource ActionCardButton}"
+                        Command="{Binding OpenPageCommand}" CommandParameter="{x:Static nav:AppPage.CreateInvoice}">
+                    <StackPanel>
+                        <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE710;" FontSize="26"
+                                   Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Text="New Invoice" FontSize="16" FontWeight="SemiBold" Margin="0,10,0,0" />
+                        <TextBlock Text="Create a GST invoice" Style="{StaticResource MutedText}" />
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource ActionCardButton}"
+                        Command="{Binding OpenPageCommand}" CommandParameter="{x:Static nav:AppPage.Customers}">
+                    <StackPanel>
+                        <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE716;" FontSize="26"
+                                   Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Text="Customers" FontSize="16" FontWeight="SemiBold" Margin="0,10,0,0" />
+                        <TextBlock Text="Add or find a customer" Style="{StaticResource MutedText}" />
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource ActionCardButton}"
+                        Command="{Binding OpenPageCommand}" CommandParameter="{x:Static nav:AppPage.InvoiceHistory}">
+                    <StackPanel>
+                        <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE81C;" FontSize="26"
+                                   Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Text="Invoice History" FontSize="16" FontWeight="SemiBold" Margin="0,10,0,0" />
+                        <TextBlock Text="Find and reprint invoices" Style="{StaticResource MutedText}" />
+                    </StackPanel>
+                </Button>
+
+                <Button Style="{StaticResource ActionCardButton}"
+                        Command="{Binding OpenPageCommand}" CommandParameter="{x:Static nav:AppPage.CompanySettings}">
+                    <StackPanel>
+                        <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE713;" FontSize="26"
+                                   Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Text="Company Settings" FontSize="16" FontWeight="SemiBold" Margin="0,10,0,0" />
+                        <TextBlock Text="Your GSTIN, address, bank" Style="{StaticResource MutedText}" />
+                    </StackPanel>
+                </Button>
+            </WrapPanel>
+
+            <Border Style="{StaticResource Card}" Margin="0,8,16,0" HorizontalAlignment="Left" MaxWidth="900">
+                <StackPanel>
+                    <TextBlock Style="{StaticResource SectionTitleText}" Text="Data storage" />
+                    <TextBlock Style="{StaticResource MutedText}" Margin="0,6,0,0"
+                               Text="All invoices and customers are saved on this computer in:" />
+                    <TextBox Text="{Binding DatabasePath, Mode=OneWay}" IsReadOnly="True" Margin="0,6,0,0"
+                             BorderThickness="0" Background="Transparent" FontFamily="Consolas" TextWrapping="Wrap" />
+                    <TextBlock Style="{StaticResource MutedText}" Margin="0,6,0,0"
+                               Text="Use Backup &amp; Restore regularly to keep a copy on a pen drive or another folder." />
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

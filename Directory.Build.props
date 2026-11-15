@@ -1,0 +1,13 @@
+<Project>
+  <!-- Settings shared by every project in the solution. -->
+  <PropertyGroup>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>12</LangVersion>
+    <!-- Nullable-reference mistakes are real bugs in a billing app: fail the build. -->
+    <WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
+    <Company>J A Sarees</Company>
+    <Product>Saree Billing</Product>
+    <Version>1.0.0</Version>
+  </PropertyGroup>
+</Project>
