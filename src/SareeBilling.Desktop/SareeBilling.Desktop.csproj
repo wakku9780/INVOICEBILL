@@ -13,9 +13,21 @@
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
+
+    <!-- The program file is SareeBilling.exe; code namespaces stay SareeBilling.Desktop. -->
+    <AssemblyName>SareeBilling</AssemblyName>
+    <RootNamespace>SareeBilling.Desktop</RootNamespace>
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
+    <Title>Saree Billing</Title>
+    <Description>GST billing and invoicing for a saree wholesale business.</Description>
+
+    <!-- Only English resource files; keeps the installer small. -->
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="Assets\app.ico" />
+  </ItemGroup>
 
 </Project>

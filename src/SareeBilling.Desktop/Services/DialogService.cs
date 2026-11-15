@@ -27,6 +27,12 @@ public interface IDialogService
 
     /// <returns>The new customer's Id, or null if cancelled.</returns>
     int? ShowNewCustomerDialog();
+
+    /// <returns>The chosen folder, or null if cancelled.</returns>
+    string? PickFolder(string title, string? initialFolder);
+
+    /// <returns>The chosen backup file, or null if cancelled.</returns>
+    string? PickBackupFile(string? initialFolder);
 }
 
 public sealed class DialogService : IDialogService
@@ -72,6 +78,30 @@ public sealed class DialogService : IDialogService
         var viewModel = _services.GetRequiredService<NewCustomerDialogViewModel>();
         var window = new NewCustomerWindow(viewModel) { Owner = Owner };
         return window.ShowDialog() == true ? viewModel.SavedCustomerId : null;
+    }
+
+    public string? PickFolder(string title, string? initialFolder)
+    {
+        var dialog = new OpenFolderDialog
+        {
+            Title = title,
+            InitialDirectory = initialFolder is not null && System.IO.Directory.Exists(initialFolder) ? initialFolder : string.Empty
+        };
+
+        return dialog.ShowDialog(Owner) == true ? dialog.FolderName : null;
+    }
+
+    public string? PickBackupFile(string? initialFolder)
+    {
+        var dialog = new OpenFileDialog
+        {
+            Title = "Choose a Saree Billing backup to restore",
+            Filter = "Saree Billing backup (*.db)|*.db|All files (*.*)|*.*",
+            CheckFileExists = true,
+            InitialDirectory = initialFolder is not null && System.IO.Directory.Exists(initialFolder) ? initialFolder : string.Empty
+        };
+
+        return dialog.ShowDialog(Owner) == true ? dialog.FileName : null;
     }
 
     private static Window? Owner => System.Windows.Application.Current?.MainWindow is { IsVisible: true } w ? w : null;

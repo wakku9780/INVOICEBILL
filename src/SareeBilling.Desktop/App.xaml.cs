@@ -5,6 +5,7 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SareeBilling.Application;
 using SareeBilling.Application.Abstractions;
+using SareeBilling.Application.Backups;
 using SareeBilling.Desktop.Navigation;
 using SareeBilling.Desktop.Services;
 using SareeBilling.Desktop.ViewModels;
@@ -56,6 +57,8 @@ public partial class App : System.Windows.Application
             MainWindow = mainWindow;
             _host.Services.GetRequiredService<INavigationService>().NavigateTo(AppPage.Dashboard);
             mainWindow.Show();
+
+            await RunDailyBackupAsync();
         }
         catch (Exception ex)
         {
@@ -108,9 +111,23 @@ public partial class App : System.Windows.Application
         builder.Services.AddTransient<CustomersViewModel>();
         builder.Services.AddTransient<CreateInvoiceViewModel>();
         builder.Services.AddTransient<InvoiceHistoryViewModel>();
+        builder.Services.AddTransient<BackupRestoreViewModel>();
         builder.Services.AddTransient<NewCustomerDialogViewModel>();
 
         return builder.Build();
+    }
+
+    /// <summary>Daily safety copy in AutoBackups. Failure must never stop the app from working.</summary>
+    private async Task RunDailyBackupAsync()
+    {
+        try
+        {
+            await _host!.Services.GetRequiredService<IBackupService>().CreateDailyBackupIfNeededAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorLog?.Write("Daily automatic backup failed", ex);
+        }
     }
 
     private void RegisterGlobalExceptionHandlers()

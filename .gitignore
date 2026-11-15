@@ -487,3 +487,11 @@ $RECYCLE.BIN/
 *.db
 *.db-wal
 *.db-shm
+
+# Build output for the installer
+artifacts/
+
+# Our own source that matches the generic Visual Studio patterns above (Backup*/, *.pubxml)
+!src/SareeBilling.Application/Backups/
+!src/SareeBilling.Infrastructure/Backup/
+!src/SareeBilling.Desktop/Properties/PublishProfiles/win-x64.pubxml
