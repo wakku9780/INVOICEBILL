@@ -27,6 +27,7 @@ public sealed class CreateInvoiceViewModel : PageViewModel
     private readonly ICustomerService _customers;
     private readonly ICompanyProfileService _companyProfiles;
     private readonly IDialogService _dialogs;
+    private readonly IInvoiceActions _actions;
     private readonly TimeProvider _timeProvider;
 
     private CompanyProfileDto? _company;
@@ -64,6 +65,7 @@ public sealed class CreateInvoiceViewModel : PageViewModel
         ICustomerService customers,
         ICompanyProfileService companyProfiles,
         IDialogService dialogs,
+        IInvoiceActions actions,
         INavigationService navigation,
         TimeProvider timeProvider)
     {
@@ -71,6 +73,7 @@ public sealed class CreateInvoiceViewModel : PageViewModel
         _customers = customers;
         _companyProfiles = companyProfiles;
         _dialogs = dialogs;
+        _actions = actions;
         _timeProvider = timeProvider;
 
         AddLineCommand = new RelayCommand(AddOrUpdateLine);
@@ -82,6 +85,9 @@ public sealed class CreateInvoiceViewModel : PageViewModel
         ClearCommand = new AsyncRelayCommand(ClearAsync, () => !IsSaved);
         StartNewInvoiceCommand = new AsyncRelayCommand(ResetAsync);
         CancelSavedInvoiceCommand = new AsyncRelayCommand(CancelSavedInvoiceAsync, () => IsSaved && !IsSavedInvoiceCancelled);
+        PreviewSavedInvoiceCommand = new AsyncRelayCommand(() => _actions.PreviewAsync(SavedInvoice!.Id), () => IsSaved);
+        PrintSavedInvoiceCommand = new AsyncRelayCommand(() => _actions.PrintAsync(SavedInvoice!.Id), () => IsSaved);
+        SaveSavedInvoicePdfCommand = new AsyncRelayCommand(() => _actions.SavePdfAsync(SavedInvoice!.Id), () => IsSaved);
         OpenCompanySettingsCommand = new RelayCommand(() => navigation.NavigateTo(AppPage.CompanySettings));
     }
 
@@ -106,6 +112,9 @@ public sealed class CreateInvoiceViewModel : PageViewModel
     public ICommand ClearCommand { get; }
     public ICommand StartNewInvoiceCommand { get; }
     public ICommand CancelSavedInvoiceCommand { get; }
+    public ICommand PreviewSavedInvoiceCommand { get; }
+    public ICommand PrintSavedInvoiceCommand { get; }
+    public ICommand SaveSavedInvoicePdfCommand { get; }
     public ICommand OpenCompanySettingsCommand { get; }
 
     // ---------- Header ----------
@@ -265,7 +274,7 @@ public sealed class CreateInvoiceViewModel : PageViewModel
     public string SavedDetails => SavedInvoice is null
         ? string.Empty
         : $"{SelectedCustomer?.Name} • Grand total Rs. {IndianFormat.Amount(SavedInvoice.GrandTotal)}" +
-          $"{Environment.NewLine}Printing and PDF will be available from Invoice History in the next update.";
+          $"{Environment.NewLine}You can print it now, or later from Invoice History.";
 
     // ---------- Loading ----------
     public override async Task InitializeAsync()
@@ -620,25 +629,9 @@ public sealed class CreateInvoiceViewModel : PageViewModel
             return;
         }
 
-        var reason = _dialogs.PromptForText(
-            "Cancel invoice",
-            $"Why is invoice {SavedInvoice.InvoiceNumber} being cancelled?\n\n" +
-            "It will stay in Invoice History marked CANCELLED, and its number will not be used again.",
-            "Cancel invoice");
-
-        if (reason is null)
+        if (await _actions.CancelAsync(SavedInvoice.Id, SavedInvoice.InvoiceNumber))
         {
-            return;
-        }
-
-        try
-        {
-            await _invoices.CancelAsync(SavedInvoice.Id, reason);
             IsSavedInvoiceCancelled = true;
-        }
-        catch (ValidationException ex)
-        {
-            _dialogs.ShowError(string.Join("\n", ex.Errors));
         }
     }
 }

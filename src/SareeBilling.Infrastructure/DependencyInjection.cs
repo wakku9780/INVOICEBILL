@@ -22,6 +22,7 @@ public static class DependencyInjection
         services.AddTransient<ICompanyProfileRepository, CompanyProfileRepository>();
         services.AddTransient<ICustomerRepository, CustomerRepository>();
         services.AddTransient<IInvoiceRepository, InvoiceRepository>();
+        services.AddSingleton<IInvoicePdfRenderer, Pdf.QuestPdfInvoiceRenderer>();
 
         return services;
     }

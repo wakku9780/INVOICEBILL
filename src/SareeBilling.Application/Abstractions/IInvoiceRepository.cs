@@ -21,5 +21,9 @@ public interface IInvoiceRepository
 
     Task<Invoice?> GetByIdAsync(int id, bool includeItems, CancellationToken cancellationToken = default);
 
+    /// <summary>Newest first, at most <paramref name="maxResults"/> rows.</summary>
+    Task<IReadOnlyList<Invoices.InvoiceSummary>> SearchAsync(
+        Invoices.InvoiceSearchCriteria criteria, int maxResults, CancellationToken cancellationToken = default);
+
     Task MarkCancelledAsync(int id, string reason, DateTime cancelledAtUtc, CancellationToken cancellationToken = default);
 }

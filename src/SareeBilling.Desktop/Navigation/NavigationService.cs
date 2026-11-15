@@ -67,7 +67,7 @@ public sealed class NavigationService : INavigationService
         AppPage.Dashboard => _services.GetRequiredService<DashboardViewModel>(),
         AppPage.CreateInvoice => _services.GetRequiredService<CreateInvoiceViewModel>(),
         AppPage.Customers => _services.GetRequiredService<CustomersViewModel>(),
-        AppPage.InvoiceHistory => new ComingSoonViewModel("Invoice History"),
+        AppPage.InvoiceHistory => _services.GetRequiredService<InvoiceHistoryViewModel>(),
         AppPage.CompanySettings => _services.GetRequiredService<CompanySettingsViewModel>(),
         AppPage.BackupRestore => new ComingSoonViewModel("Backup & Restore"),
         _ => throw new ArgumentOutOfRangeException(nameof(page), page, null)

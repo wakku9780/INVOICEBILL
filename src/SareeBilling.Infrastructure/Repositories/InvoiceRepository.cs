@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SareeBilling.Application.Abstractions;
+using SareeBilling.Application.Invoices;
 using SareeBilling.Domain.Entities;
 using SareeBilling.Domain.Enums;
 using SareeBilling.Infrastructure.Persistence;
@@ -89,6 +90,47 @@ internal sealed class InvoiceRepository : IInvoiceRepository
         }
 
         return await query.SingleOrDefaultAsync(i => i.Id == id, cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<InvoiceSummary>> SearchAsync(
+        InvoiceSearchCriteria criteria, int maxResults, CancellationToken cancellationToken = default)
+    {
+        await using var db = await _contextFactory.CreateDbContextAsync(cancellationToken);
+        IQueryable<Invoice> query = db.Invoices.AsNoTracking();
+
+        if (!string.IsNullOrWhiteSpace(criteria.Text))
+        {
+            var pattern = "%" + criteria.Text.Trim().Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%";
+            query = query.Where(i =>
+                EF.Functions.Like(i.InvoiceNumber, pattern, "\\") ||
+                EF.Functions.Like(i.BuyerName, pattern, "\\") ||
+                EF.Functions.Like(i.BuyerGstin, pattern, "\\"));
+        }
+
+        if (criteria.FromDate is { } from)
+        {
+            query = query.Where(i => i.InvoiceDate >= from);
+        }
+
+        if (criteria.ToDate is { } to)
+        {
+            query = query.Where(i => i.InvoiceDate <= to);
+        }
+
+        if (!criteria.IncludeCancelled)
+        {
+            query = query.Where(i => i.Status != InvoiceStatus.Cancelled);
+        }
+
+        // Dates are stored as yyyy-MM-dd text, so they sort correctly in SQLite.
+        return await query
+            .OrderByDescending(i => i.InvoiceDate)
+            .ThenByDescending(i => i.Id)
+            .Take(maxResults)
+            .Select(i => new InvoiceSummary(
+                i.Id, i.InvoiceNumber, i.InvoiceDate, i.BuyerName, i.BuyerGstin,
+                i.TaxableTotal, i.TotalTax, i.GrandTotal, i.Status))
+            .ToListAsync(cancellationToken);
     }
 
     public async Task MarkCancelledAsync(int id, string reason, DateTime cancelledAtUtc, CancellationToken cancellationToken = default)

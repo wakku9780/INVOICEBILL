@@ -22,10 +22,14 @@ public interface IInvoiceService
 
     /// <summary>Shows the number the next invoice on this date will probably get, or null before company setup.</summary>
     Task<string?> PreviewNextNumberAsync(DateOnly invoiceDate, CancellationToken cancellationToken = default);
+
+    /// <summary>Invoice History search: newest first, at most <see cref="InvoiceService.MaxSearchResults"/> rows.</summary>
+    Task<IReadOnlyList<InvoiceSummary>> SearchAsync(InvoiceSearchCriteria criteria, CancellationToken cancellationToken = default);
 }
 
 public sealed class InvoiceService : IInvoiceService
 {
+    public const int MaxSearchResults = 1000;
     private const int MaxReferenceLength = 100;
     private const int MaxLongTextLength = 1000;
 
@@ -106,6 +110,12 @@ public sealed class InvoiceService : IInvoiceService
         var financialYear = FinancialYear.For(invoiceDate);
         var next = await _invoices.GetLastSequenceAsync(financialYear, cancellationToken) + 1;
         return InvoiceNumber.Format(company.InvoicePrefix, financialYear, next);
+    }
+
+    public Task<IReadOnlyList<InvoiceSummary>> SearchAsync(InvoiceSearchCriteria criteria, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(criteria);
+        return _invoices.SearchAsync(criteria with { Text = InputRules.Clean(criteria.Text) }, MaxSearchResults, cancellationToken);
     }
 
     private List<string> Validate(CreateInvoiceRequest request, Customer? customer)

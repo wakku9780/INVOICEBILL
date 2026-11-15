@@ -98,6 +98,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton(errorLog);
         builder.Services.AddSingleton<IDialogService, DialogService>();
         builder.Services.AddSingleton<INavigationService, NavigationService>();
+        builder.Services.AddSingleton<IInvoiceActions, InvoiceActions>();
 
         // Window and pages (pages are transient: each visit loads fresh data)
         builder.Services.AddSingleton<MainViewModel>();
@@ -106,6 +107,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddTransient<CompanySettingsViewModel>();
         builder.Services.AddTransient<CustomersViewModel>();
         builder.Services.AddTransient<CreateInvoiceViewModel>();
+        builder.Services.AddTransient<InvoiceHistoryViewModel>();
         builder.Services.AddTransient<NewCustomerDialogViewModel>();
 
         return builder.Build();
