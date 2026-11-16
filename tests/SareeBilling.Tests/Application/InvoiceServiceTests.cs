@@ -33,7 +33,6 @@ public sealed class InvoiceServiceTests : IAsyncLifetime
             Pincode = "276404",
             StateCode = "09",
             Gstin = "09ACSPH2858M1ZT",
-            InvoicePrefix = "JAS",
             DeclarationText = "Declaration text"
         });
 
@@ -84,7 +83,7 @@ public sealed class InvoiceServiceTests : IAsyncLifetime
     {
         var created = await Invoices.CreateAsync(Request());
 
-        Assert.Equal("JAS/2026-27/1", created.InvoiceNumber);
+        Assert.Equal("1", created.InvoiceNumber);
         Assert.Equal(350595m, created.GrandTotal);
 
         var saved = await LoadAsync(created.Id);
@@ -123,44 +122,44 @@ public sealed class InvoiceServiceTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Numbers_are_sequential_and_preview_shows_next()
+    public async Task Numbers_are_plain_sequential_and_preview_shows_next()
     {
-        Assert.Equal("JAS/2026-27/1", await Invoices.PreviewNextNumberAsync(Nov1));
+        Assert.Equal("1", await Invoices.PreviewNextNumberAsync());
 
         var first = await Invoices.CreateAsync(Request());
         var second = await Invoices.CreateAsync(Request());
 
-        Assert.Equal("JAS/2026-27/1", first.InvoiceNumber);
-        Assert.Equal("JAS/2026-27/2", second.InvoiceNumber);
-        Assert.Equal("JAS/2026-27/3", await Invoices.PreviewNextNumberAsync(Nov1));
+        Assert.Equal("1", first.InvoiceNumber);
+        Assert.Equal("2", second.InvoiceNumber);
+        Assert.Equal("3", await Invoices.PreviewNextNumberAsync());
     }
 
     [Fact]
-    public async Task Numbering_restarts_each_financial_year()
+    public async Task Numbering_never_restarts_across_financial_years()
     {
-        await Invoices.CreateAsync(Request());
+        var november = await Invoices.CreateAsync(Request(date: new DateOnly(2026, 11, 1)));
+        var previousYear = await Invoices.CreateAsync(Request(date: new DateOnly(2026, 3, 31)));
+        var april = await Invoices.CreateAsync(Request(date: new DateOnly(2026, 4, 1)));
 
-        var lastYear = await Invoices.CreateAsync(Request(date: new DateOnly(2026, 3, 31)));
-
-        Assert.Equal("JAS/2025-26/1", lastYear.InvoiceNumber);
+        Assert.Equal(["1", "2", "3"], new[] { november.InvoiceNumber, previousYear.InvoiceNumber, april.InvoiceNumber });
+        Assert.Equal("2025-26", (await LoadAsync(previousYear.Id)).FinancialYear);
     }
 
     [Fact]
     public async Task Starting_number_continues_from_tally_and_can_never_go_back()
     {
-        await Numbering.SetNextNumberAsync("2026-27", 162);
-        Assert.Equal(162, await Numbering.GetNextNumberAsync("2026-27"));
+        await Numbering.SetNextNumberAsync(162);
+        Assert.Equal(162, await Numbering.GetNextNumberAsync());
 
         var created = await Invoices.CreateAsync(Request());
-        Assert.Equal("JAS/2026-27/162", created.InvoiceNumber);
+        Assert.Equal("162", created.InvoiceNumber);
 
-        var ex = await Assert.ThrowsAsync<ValidationException>(() => Numbering.SetNextNumberAsync("2026-27", 162));
+        var ex = await Assert.ThrowsAsync<ValidationException>(() => Numbering.SetNextNumberAsync(162));
         Assert.Contains("163 or higher", ex.Errors[0]);
 
-        await Numbering.SetNextNumberAsync("2026-27", 170);
-        Assert.Equal("JAS/2026-27/170", (await Invoices.CreateAsync(Request())).InvoiceNumber);
+        await Numbering.SetNextNumberAsync(170);
+        Assert.Equal("170", (await Invoices.CreateAsync(Request())).InvoiceNumber);
     }
-
     [Fact]
     public async Task Invalid_request_reports_every_problem_and_saves_nothing()
     {
@@ -175,7 +174,7 @@ public sealed class InvoiceServiceTests : IAsyncLifetime
         Assert.Contains("Item 1: HSN code must be 4, 6 or 8 digits (for example 5007).", ex.Errors);
         Assert.Contains("Item 1: Quantity must be more than 0.", ex.Errors);
         Assert.Contains("Item 1: Rate must be more than 0.", ex.Errors);
-        Assert.Equal(1, await Numbering.GetNextNumberAsync("2026-27"));
+        Assert.Equal(1, await Numbering.GetNextNumberAsync());
     }
 
     [Fact]
@@ -227,7 +226,7 @@ public sealed class InvoiceServiceTests : IAsyncLifetime
         await Assert.ThrowsAsync<ValidationException>(() => Invoices.CancelAsync(created.Id, "again"));
 
         var next = await Invoices.CreateAsync(Request());
-        Assert.Equal("JAS/2026-27/2", next.InvoiceNumber);
+        Assert.Equal("2", next.InvoiceNumber);
     }
 
     [Fact]
@@ -247,9 +246,9 @@ public sealed class InvoiceServiceTests : IAsyncLifetime
             LineNumber = 1, Description = "Bad", HsnCode = "5007", Unit = "Qty", Quantity = 0m, Rate = 1m
         });
 
-        await Assert.ThrowsAsync<DbUpdateException>(() => repository.AddWithNextNumberAsync(broken, n => $"X/{n}"));
+        await Assert.ThrowsAsync<DbUpdateException>(() => repository.AddWithNextNumberAsync(broken));
 
-        Assert.Equal(1, await Numbering.GetNextNumberAsync("2026-27"));
+        Assert.Equal(1, await Numbering.GetNextNumberAsync());
         await using var db = await _host.Get<IDbContextFactory<AppDbContext>>().CreateDbContextAsync();
         Assert.Equal(0, await db.Invoices.CountAsync());
         Assert.Equal(0, await db.InvoiceItems.CountAsync());

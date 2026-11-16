@@ -5,7 +5,6 @@ using SareeBilling.Application.CompanyProfiles;
 using SareeBilling.Application.Invoices;
 using SareeBilling.Desktop.Mvvm;
 using SareeBilling.Desktop.Services;
-using SareeBilling.Domain.Common;
 using SareeBilling.Domain.Entities;
 using SareeBilling.Domain.Gst;
 
@@ -16,7 +15,8 @@ public sealed class CompanySettingsViewModel : PageViewModel
     private readonly ICompanyProfileService _service;
     private readonly IInvoiceNumberingService _numbering;
     private readonly IDialogService _dialogs;
-    private readonly string _financialYear;
+    private readonly IUpdateCoordinator _updates;
+    private string? _updateStatusText;
 
     private int _loadedNextNumber;
     private string _nextInvoiceNumber = string.Empty;
@@ -33,7 +33,6 @@ public sealed class CompanySettingsViewModel : PageViewModel
     private string _pincode = string.Empty;
     private string _phone = string.Empty;
     private string _email = string.Empty;
-    private string _invoicePrefix = string.Empty;
     private string _declarationText = new CompanyProfile().DeclarationText;
     private string _bankName = string.Empty;
     private string _bankAccountNumber = string.Empty;
@@ -47,16 +46,17 @@ public sealed class CompanySettingsViewModel : PageViewModel
         ICompanyProfileService service,
         IInvoiceNumberingService numbering,
         IDialogService dialogs,
-        TimeProvider timeProvider)
+        IUpdateCoordinator updates)
     {
         _service = service;
         _numbering = numbering;
         _dialogs = dialogs;
-        _financialYear = FinancialYear.For(DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime));
+        _updates = updates;
 
         SaveCommand = new AsyncRelayCommand(SaveAsync, () => _isLoaded);
         ChooseLogoCommand = new RelayCommand(ChooseLogo);
         RemoveLogoCommand = new RelayCommand(() => Logo = null, () => Logo is not null);
+        CheckForUpdatesCommand = new AsyncRelayCommand(CheckForUpdatesAsync);
     }
 
     public override string Title => "Company Settings";
@@ -66,6 +66,11 @@ public sealed class CompanySettingsViewModel : PageViewModel
     public ICommand SaveCommand { get; }
     public ICommand ChooseLogoCommand { get; }
     public ICommand RemoveLogoCommand { get; }
+    public ICommand CheckForUpdatesCommand { get; }
+
+    public string AppVersionText => $"You are using Saree Billing version {_updates.CurrentVersionText}.";
+
+    public string? UpdateStatusText { get => _updateStatusText; private set => SetProperty(ref _updateStatusText, value); }
 
     public bool IsFirstSetup
     {
@@ -107,30 +112,15 @@ public sealed class CompanySettingsViewModel : PageViewModel
     public string Phone { get => _phone; set => SetProperty(ref _phone, value); }
     public string Email { get => _email; set => SetProperty(ref _email, value); }
 
-    public string InvoicePrefix
-    {
-        get => _invoicePrefix;
-        set
-        {
-            if (SetProperty(ref _invoicePrefix, value))
-            {
-                OnPropertyChanged(nameof(InvoiceNumberExample));
-            }
-        }
-    }
-
     /// <summary>Shows staff what their invoice numbers will look like.</summary>
     public string InvoiceNumberExample
     {
         get
         {
-            var prefix = string.IsNullOrWhiteSpace(InvoicePrefix) ? "JAS" : InvoicePrefix.Trim().ToUpperInvariant();
             var next = int.TryParse(NextInvoiceNumber, out var n) && n > 0 ? n : 1;
-            return $"The next invoice will be {prefix}/{_financialYear}/{next}, then {prefix}/{_financialYear}/{next + 1} …";
+            return $"The next invoice will be number {next}, then {next + 1}, {next + 2} …";
         }
     }
-
-    public string NextInvoiceNumberLabel => $"Next invoice number for {_financialYear} *";
 
     /// <summary>Lets numbering continue after the last invoice made in another program (e.g. Tally).</summary>
     public string NextInvoiceNumber
@@ -184,7 +174,6 @@ public sealed class CompanySettingsViewModel : PageViewModel
             Pincode = profile.Pincode ?? string.Empty;
             Phone = profile.Phone ?? string.Empty;
             Email = profile.Email ?? string.Empty;
-            InvoicePrefix = profile.InvoicePrefix;
             DeclarationText = profile.DeclarationText;
             BankName = profile.BankName ?? string.Empty;
             BankAccountNumber = profile.BankAccountNumber ?? string.Empty;
@@ -193,7 +182,7 @@ public sealed class CompanySettingsViewModel : PageViewModel
             Logo = profile.Logo;
         }
 
-        _loadedNextNumber = await _numbering.GetNextNumberAsync(_financialYear);
+        _loadedNextNumber = await _numbering.GetNextNumberAsync();
         NextInvoiceNumber = _loadedNextNumber.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
         _isLoaded = true;
@@ -216,7 +205,6 @@ public sealed class CompanySettingsViewModel : PageViewModel
             Pincode = Pincode,
             Phone = Phone,
             Email = Email,
-            InvoicePrefix = InvoicePrefix,
             DeclarationText = DeclarationText,
             BankName = BankName,
             BankAccountNumber = BankAccountNumber,
@@ -238,7 +226,7 @@ public sealed class CompanySettingsViewModel : PageViewModel
 
             if (nextNumber != _loadedNextNumber)
             {
-                await _numbering.SetNextNumberAsync(_financialYear, nextNumber);
+                await _numbering.SetNextNumberAsync(nextNumber);
                 _loadedNextNumber = nextNumber;
             }
 
@@ -268,5 +256,11 @@ public sealed class CompanySettingsViewModel : PageViewModel
         }
 
         Logo = File.ReadAllBytes(path);
+    }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        UpdateStatusText = "Checking…";
+        UpdateStatusText = await _updates.CheckNowAsync();
     }
 }

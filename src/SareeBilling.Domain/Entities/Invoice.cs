@@ -9,13 +9,16 @@ namespace SareeBilling.Domain.Entities;
 /// </summary>
 public class Invoice : AuditableEntity
 {
-    /// <summary>Full display number, e.g. "JAS/2026-27/161". Unique.</summary>
+    /// <summary>
+    /// Printed invoice number, e.g. "161". Unique. Invoices saved before plain numbering
+    /// was introduced keep their original number (e.g. "JAS/2026-27/1").
+    /// </summary>
     public string InvoiceNumber { get; set; } = string.Empty;
 
-    /// <summary>Financial year label, e.g. "2026-27".</summary>
+    /// <summary>Financial year of the invoice date, e.g. "2026-27" (kept for reports).</summary>
     public string FinancialYear { get; set; } = string.Empty;
 
-    /// <summary>Running number within the financial year. Unique per year.</summary>
+    /// <summary>Running number that never restarts; InvoiceNumber is this number as text.</summary>
     public int SequenceNumber { get; set; }
 
     public DateOnly InvoiceDate { get; set; }

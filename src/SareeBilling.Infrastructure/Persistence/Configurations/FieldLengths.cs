@@ -13,7 +13,6 @@ internal static class FieldLengths
     public const int Gstin = 15;
     public const int Phone = 60;
     public const int Email = 150;
-    public const int InvoicePrefix = 20;
     public const int InvoiceNumber = 40;
     public const int FinancialYear = 7;
     public const int BankAccount = 40;

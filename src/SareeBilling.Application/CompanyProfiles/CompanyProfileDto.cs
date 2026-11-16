@@ -16,7 +16,6 @@ public sealed record CompanyProfileDto
     public string? Phone { get; init; }
     public string? Email { get; init; }
     public byte[]? Logo { get; init; }
-    public string InvoicePrefix { get; init; } = string.Empty;
     public string? BankName { get; init; }
     public string? BankAccountNumber { get; init; }
     public string? BankIfsc { get; init; }

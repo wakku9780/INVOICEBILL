@@ -25,11 +25,14 @@
             <DataTemplate DataType="{x:Type vm:CreateInvoiceViewModel}">
                 <views:CreateInvoiceView />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:InvoiceHistoryViewModel}">
+                <views:InvoiceHistoryView />
+            </DataTemplate>
             <DataTemplate DataType="{x:Type vm:CustomersViewModel}">
                 <views:CustomersView />
             </DataTemplate>
-            <DataTemplate DataType="{x:Type vm:ComingSoonViewModel}">
-                <views:ComingSoonView />
+            <DataTemplate DataType="{x:Type vm:BackupRestoreViewModel}">
+                <views:BackupRestoreView />
             </DataTemplate>
         </ResourceDictionary>
     </Application.Resources>

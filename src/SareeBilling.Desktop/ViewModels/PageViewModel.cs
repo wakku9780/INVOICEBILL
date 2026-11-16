@@ -15,4 +15,10 @@ public abstract class PageViewModel : ObservableObject
     /// chose not to discard unsaved work).
     /// </summary>
     public virtual bool ConfirmLeave() => true;
+
+    /// <summary>
+    /// True while the user is in the middle of work that would be lost if the app closed
+    /// (e.g. an invoice being entered). App updates wait until this is false.
+    /// </summary>
+    public virtual bool HasUnsavedWork => false;
 }

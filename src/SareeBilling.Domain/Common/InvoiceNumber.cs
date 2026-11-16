@@ -1,14 +1,17 @@
+using System.Globalization;
+
 namespace SareeBilling.Domain.Common;
 
+/// <summary>
+/// Invoice numbers are plain running numbers (1, 2, 3 …) that never restart,
+/// so every number is unique for all time.
+/// </summary>
 public static class InvoiceNumber
 {
-    /// <example>("JAS", "2026-27", 161) → "JAS/2026-27/161"</example>
-    public static string Format(string prefix, string financialYear, int sequence)
+    /// <example>161 → "161"</example>
+    public static string Format(int sequence)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(prefix);
-        ArgumentException.ThrowIfNullOrWhiteSpace(financialYear);
         ArgumentOutOfRangeException.ThrowIfLessThan(sequence, 1);
-
-        return $"{prefix}/{financialYear}/{sequence}";
+        return sequence.ToString(CultureInfo.InvariantCulture);
     }
 }

@@ -69,11 +69,6 @@ namespace SareeBilling.Infrastructure.Persistence.Migrations
                         .HasMaxLength(15)
                         .HasColumnType("TEXT");
 
-                    b.Property<string>("InvoicePrefix")
-                        .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("TEXT");
-
                     b.Property<byte[]>("Logo")
                         .HasColumnType("BLOB");
 
@@ -379,8 +374,7 @@ namespace SareeBilling.Infrastructure.Persistence.Migrations
                     b.HasIndex("InvoiceNumber")
                         .IsUnique();
 
-                    b.HasIndex("FinancialYear", "SequenceNumber")
-                        .IsUnique();
+                    b.HasIndex("SequenceNumber");
 
                     b.ToTable("Invoices", null, t =>
                         {
@@ -389,6 +383,24 @@ namespace SareeBilling.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("CK_Invoices_Status", "\"Status\" IN (1, 2)");
 
                             t.HasCheckConstraint("CK_Invoices_TaxType", "\"TaxType\" IN (1, 2)");
+                        });
+                });
+
+            modelBuilder.Entity("SareeBilling.Domain.Entities.InvoiceCounter", b =>
+                {
+                    b.Property<int>("Id")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("LastNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("InvoiceCounter", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_InvoiceCounter_LastNumber", "\"LastNumber\" >= 0");
+
+                            t.HasCheckConstraint("CK_InvoiceCounter_SingleRow", "\"Id\" = 1");
                         });
                 });
 
@@ -477,23 +489,6 @@ namespace SareeBilling.Infrastructure.Persistence.Migrations
                             t.HasCheckConstraint("CK_InvoiceItems_Quantity", "CAST(\"Quantity\" AS REAL) > 0");
 
                             t.HasCheckConstraint("CK_InvoiceItems_Rate", "CAST(\"Rate\" AS REAL) >= 0");
-                        });
-                });
-
-            modelBuilder.Entity("SareeBilling.Domain.Entities.InvoiceSequence", b =>
-                {
-                    b.Property<string>("FinancialYear")
-                        .HasMaxLength(7)
-                        .HasColumnType("TEXT");
-
-                    b.Property<int>("LastNumber")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("FinancialYear");
-
-                    b.ToTable("InvoiceSequences", null, t =>
-                        {
-                            t.HasCheckConstraint("CK_InvoiceSequences_LastNumber", "\"LastNumber\" >= 0");
                         });
                 });
 

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
 
   <ItemGroup>
     <ProjectReference Include="..\SareeBilling.Application\SareeBilling.Application.csproj" />
@@ -19,5 +19,10 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
   </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Lets the tests replace the network in the update service. -->
+    <InternalsVisibleTo Include="SareeBilling.Tests" />
+  </ItemGroup>
 
 </Project>

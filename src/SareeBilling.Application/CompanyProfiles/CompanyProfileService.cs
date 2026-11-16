@@ -1,4 +1,3 @@
-using System.Text.RegularExpressions;
 using SareeBilling.Application.Abstractions;
 using SareeBilling.Application.Common;
 using SareeBilling.Domain.Entities;
@@ -15,10 +14,9 @@ public interface ICompanyProfileService
     Task SaveAsync(CompanyProfileDto profile, CancellationToken cancellationToken = default);
 }
 
-public sealed partial class CompanyProfileService : ICompanyProfileService
+public sealed class CompanyProfileService : ICompanyProfileService
 {
     public const int MaxLogoBytes = 512 * 1024;
-    public const int MaxPrefixLength = 10;
 
     private readonly ICompanyProfileRepository _repository;
 
@@ -26,9 +24,6 @@ public sealed partial class CompanyProfileService : ICompanyProfileService
     {
         _repository = repository;
     }
-
-    [GeneratedRegex("^[A-Z0-9-]+$")]
-    private static partial Regex PrefixPattern();
 
     public async Task<CompanyProfileDto?> GetAsync(CancellationToken cancellationToken = default)
     {
@@ -67,7 +62,6 @@ public sealed partial class CompanyProfileService : ICompanyProfileService
             Phone = InputRules.Clean(dto.Phone),
             Email = InputRules.Clean(dto.Email),
             Logo = dto.Logo is { Length: > 0 } ? dto.Logo : null,
-            InvoicePrefix = InputRules.CleanRequired(dto.InvoicePrefix).ToUpperInvariant(),
             BankName = InputRules.Clean(dto.BankName),
             BankAccountNumber = InputRules.Clean(dto.BankAccountNumber),
             BankIfsc = InputRules.Clean(dto.BankIfsc)?.ToUpperInvariant(),
@@ -98,15 +92,6 @@ public sealed partial class CompanyProfileService : ICompanyProfileService
 
         InputRules.MaxLength(errors, p.Phone, "Phone", 60);
         InputRules.Email(errors, p.Email);
-
-        if (p.InvoicePrefix.Length == 0)
-        {
-            errors.Add("Invoice prefix is required (for example JAS).");
-        }
-        else if (p.InvoicePrefix.Length > MaxPrefixLength || !PrefixPattern().IsMatch(p.InvoicePrefix))
-        {
-            errors.Add($"Invoice prefix can have up to {MaxPrefixLength} letters, digits or '-' (for example JAS).");
-        }
 
         InputRules.MaxLength(errors, p.BankName, "Bank name", 200);
         InputRules.MaxLength(errors, p.BankAccountNumber, "Account number", 40);
@@ -145,7 +130,6 @@ public sealed partial class CompanyProfileService : ICompanyProfileService
         Phone = e.Phone,
         Email = e.Email,
         Logo = e.Logo,
-        InvoicePrefix = e.InvoicePrefix,
         BankName = e.BankName,
         BankAccountNumber = e.BankAccountNumber,
         BankIfsc = e.BankIfsc,

@@ -22,7 +22,17 @@ public static class DependencyInjection
         services.AddTransient<ICompanyProfileRepository, CompanyProfileRepository>();
         services.AddTransient<ICustomerRepository, CustomerRepository>();
         services.AddTransient<IInvoiceRepository, InvoiceRepository>();
+        services.AddSingleton<IInvoicePdfRenderer, Pdf.QuestPdfInvoiceRenderer>();
+        services.AddSingleton<Application.Backups.IBackupService, Backup.SqliteBackupService>();
 
+        return services;
+    }
+
+    /// <summary>Update checks against a public GitHub releases repository.</summary>
+    public static IServiceCollection AddGitHubUpdates(this IServiceCollection services, Updates.UpdateSettings settings)
+    {
+        services.AddSingleton(settings);
+        services.AddSingleton<Application.Updates.IUpdateService, Updates.GitHubUpdateService>();
         return services;
     }
 }

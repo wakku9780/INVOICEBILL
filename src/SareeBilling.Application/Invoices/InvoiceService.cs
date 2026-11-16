@@ -20,12 +20,16 @@ public interface IInvoiceService
     /// <exception cref="ValidationException">When no reason is given or it is already cancelled.</exception>
     Task CancelAsync(int invoiceId, string reason, CancellationToken cancellationToken = default);
 
-    /// <summary>Shows the number the next invoice on this date will probably get, or null before company setup.</summary>
-    Task<string?> PreviewNextNumberAsync(DateOnly invoiceDate, CancellationToken cancellationToken = default);
+    /// <summary>Shows the number the next invoice will probably get, or null before company setup.</summary>
+    Task<string?> PreviewNextNumberAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>Invoice History search: newest first, at most <see cref="InvoiceService.MaxSearchResults"/> rows.</summary>
+    Task<IReadOnlyList<InvoiceSummary>> SearchAsync(InvoiceSearchCriteria criteria, CancellationToken cancellationToken = default);
 }
 
 public sealed class InvoiceService : IInvoiceService
 {
+    public const int MaxSearchResults = 1000;
     private const int MaxReferenceLength = 100;
     private const int MaxLongTextLength = 1000;
 
@@ -64,11 +68,7 @@ public sealed class InvoiceService : IInvoiceService
         }
 
         var invoice = BuildInvoice(request, company, customer!);
-        var financialYear = invoice.FinancialYear;
-        var saved = await _invoices.AddWithNextNumberAsync(
-            invoice,
-            sequence => InvoiceNumber.Format(company.InvoicePrefix, financialYear, sequence),
-            cancellationToken);
+        var saved = await _invoices.AddWithNextNumberAsync(invoice, cancellationToken);
 
         return new CreatedInvoice(saved.Id, saved.InvoiceNumber, saved.GrandTotal);
     }
@@ -95,17 +95,20 @@ public sealed class InvoiceService : IInvoiceService
         await _invoices.MarkCancelledAsync(invoiceId, cleanReason, _timeProvider.GetUtcNow().UtcDateTime, cancellationToken);
     }
 
-    public async Task<string?> PreviewNextNumberAsync(DateOnly invoiceDate, CancellationToken cancellationToken = default)
+    public async Task<string?> PreviewNextNumberAsync(CancellationToken cancellationToken = default)
     {
-        var company = await _companyProfiles.GetAsync(cancellationToken);
-        if (company is null)
+        if (await _companyProfiles.GetAsync(cancellationToken) is null)
         {
             return null;
         }
 
-        var financialYear = FinancialYear.For(invoiceDate);
-        var next = await _invoices.GetLastSequenceAsync(financialYear, cancellationToken) + 1;
-        return InvoiceNumber.Format(company.InvoicePrefix, financialYear, next);
+        return InvoiceNumber.Format(await _invoices.GetLastNumberAsync(cancellationToken) + 1);
+    }
+
+    public Task<IReadOnlyList<InvoiceSummary>> SearchAsync(InvoiceSearchCriteria criteria, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(criteria);
+        return _invoices.SearchAsync(criteria with { Text = InputRules.Clean(criteria.Text) }, MaxSearchResults, cancellationToken);
     }
 
     private List<string> Validate(CreateInvoiceRequest request, Customer? customer)

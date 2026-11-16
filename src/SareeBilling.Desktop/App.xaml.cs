@@ -5,10 +5,12 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using SareeBilling.Application;
 using SareeBilling.Application.Abstractions;
+using SareeBilling.Application.Backups;
 using SareeBilling.Desktop.Navigation;
 using SareeBilling.Desktop.Services;
 using SareeBilling.Desktop.ViewModels;
 using SareeBilling.Infrastructure;
+using SareeBilling.Infrastructure.Updates;
 
 namespace SareeBilling.Desktop;
 
@@ -22,6 +24,11 @@ public partial class App : System.Windows.Application
 #endif
 
     private const string SingleInstanceMutexName = @"Local\SareeBilling.SingleInstance";
+
+    // Public repository that holds ONLY installers and release notes (no source code).
+    // The app reads it without any token, so nothing secret is built into SareeBilling.exe.
+    private const string ReleasesOwner = "wakku9780";
+    private const string ReleasesRepository = "SareeBilling-Releases";
 
     private Mutex? _singleInstanceMutex;
     private IHost? _host;
@@ -56,6 +63,15 @@ public partial class App : System.Windows.Application
             MainWindow = mainWindow;
             _host.Services.GetRequiredService<INavigationService>().NavigateTo(AppPage.Dashboard);
             mainWindow.Show();
+
+            await RunDailyBackupAsync();
+
+            var updates = _host.Services.GetRequiredService<IUpdateCoordinator>();
+            updates.ReportPreviousUpdate();
+#if !DEBUG
+            // Quiet check: shows a banner if a newer version exists; does nothing when offline.
+            await updates.CheckQuietlyAsync();
+#endif
         }
         catch (Exception ex)
         {
@@ -93,11 +109,17 @@ public partial class App : System.Windows.Application
 
         builder.Services.AddApplication();
         builder.Services.AddInfrastructure(paths);
+        builder.Services.AddGitHubUpdates(new UpdateSettings(
+            ReleasesOwner,
+            ReleasesRepository,
+            typeof(App).Assembly.GetName().Version ?? new Version(1, 0, 0)));
 
         // Desktop services
         builder.Services.AddSingleton(errorLog);
         builder.Services.AddSingleton<IDialogService, DialogService>();
         builder.Services.AddSingleton<INavigationService, NavigationService>();
+        builder.Services.AddSingleton<IInvoiceActions, InvoiceActions>();
+        builder.Services.AddSingleton<IUpdateCoordinator, UpdateCoordinator>();
 
         // Window and pages (pages are transient: each visit loads fresh data)
         builder.Services.AddSingleton<MainViewModel>();
@@ -106,9 +128,24 @@ public partial class App : System.Windows.Application
         builder.Services.AddTransient<CompanySettingsViewModel>();
         builder.Services.AddTransient<CustomersViewModel>();
         builder.Services.AddTransient<CreateInvoiceViewModel>();
+        builder.Services.AddTransient<InvoiceHistoryViewModel>();
+        builder.Services.AddTransient<BackupRestoreViewModel>();
         builder.Services.AddTransient<NewCustomerDialogViewModel>();
 
         return builder.Build();
+    }
+
+    /// <summary>Daily safety copy in AutoBackups. Failure must never stop the app from working.</summary>
+    private async Task RunDailyBackupAsync()
+    {
+        try
+        {
+            await _host!.Services.GetRequiredService<IBackupService>().CreateDailyBackupIfNeededAsync();
+        }
+        catch (Exception ex)
+        {
+            _errorLog?.Write("Daily automatic backup failed", ex);
+        }
     }
 
     private void RegisterGlobalExceptionHandlers()

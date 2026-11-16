@@ -2,9 +2,9 @@ using System.Windows.Controls;
 
 namespace SareeBilling.Desktop.Views;
 
-public partial class ComingSoonView : UserControl
+public partial class InvoiceHistoryView : UserControl
 {
-    public ComingSoonView()
+    public InvoiceHistoryView()
     {
         InitializeComponent();
     }

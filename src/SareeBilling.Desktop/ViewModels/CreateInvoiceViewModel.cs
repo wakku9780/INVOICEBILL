@@ -27,6 +27,7 @@ public sealed class CreateInvoiceViewModel : PageViewModel
     private readonly ICustomerService _customers;
     private readonly ICompanyProfileService _companyProfiles;
     private readonly IDialogService _dialogs;
+    private readonly IInvoiceActions _actions;
     private readonly TimeProvider _timeProvider;
 
     private CompanyProfileDto? _company;
@@ -64,6 +65,7 @@ public sealed class CreateInvoiceViewModel : PageViewModel
         ICustomerService customers,
         ICompanyProfileService companyProfiles,
         IDialogService dialogs,
+        IInvoiceActions actions,
         INavigationService navigation,
         TimeProvider timeProvider)
     {
@@ -71,6 +73,7 @@ public sealed class CreateInvoiceViewModel : PageViewModel
         _customers = customers;
         _companyProfiles = companyProfiles;
         _dialogs = dialogs;
+        _actions = actions;
         _timeProvider = timeProvider;
 
         AddLineCommand = new RelayCommand(AddOrUpdateLine);
@@ -82,6 +85,9 @@ public sealed class CreateInvoiceViewModel : PageViewModel
         ClearCommand = new AsyncRelayCommand(ClearAsync, () => !IsSaved);
         StartNewInvoiceCommand = new AsyncRelayCommand(ResetAsync);
         CancelSavedInvoiceCommand = new AsyncRelayCommand(CancelSavedInvoiceAsync, () => IsSaved && !IsSavedInvoiceCancelled);
+        PreviewSavedInvoiceCommand = new AsyncRelayCommand(() => _actions.PreviewAsync(SavedInvoice!.Id), () => IsSaved);
+        PrintSavedInvoiceCommand = new AsyncRelayCommand(() => _actions.PrintAsync(SavedInvoice!.Id), () => IsSaved);
+        SaveSavedInvoicePdfCommand = new AsyncRelayCommand(() => _actions.SavePdfAsync(SavedInvoice!.Id), () => IsSaved);
         OpenCompanySettingsCommand = new RelayCommand(() => navigation.NavigateTo(AppPage.CompanySettings));
     }
 
@@ -106,6 +112,9 @@ public sealed class CreateInvoiceViewModel : PageViewModel
     public ICommand ClearCommand { get; }
     public ICommand StartNewInvoiceCommand { get; }
     public ICommand CancelSavedInvoiceCommand { get; }
+    public ICommand PreviewSavedInvoiceCommand { get; }
+    public ICommand PrintSavedInvoiceCommand { get; }
+    public ICommand SaveSavedInvoicePdfCommand { get; }
     public ICommand OpenCompanySettingsCommand { get; }
 
     // ---------- Header ----------
@@ -171,17 +180,7 @@ public sealed class CreateInvoiceViewModel : PageViewModel
         }
     }
 
-    public DateTime? InvoiceDate
-    {
-        get => _invoiceDate;
-        set
-        {
-            if (SetProperty(ref _invoiceDate, value))
-            {
-                RefreshNextNumberInBackground();
-            }
-        }
-    }
+    public DateTime? InvoiceDate { get => _invoiceDate; set => SetProperty(ref _invoiceDate, value); }
 
     public string NextNumberText { get => _nextNumberText; private set => SetProperty(ref _nextNumberText, value); }
 
@@ -265,7 +264,7 @@ public sealed class CreateInvoiceViewModel : PageViewModel
     public string SavedDetails => SavedInvoice is null
         ? string.Empty
         : $"{SelectedCustomer?.Name} • Grand total Rs. {IndianFormat.Amount(SavedInvoice.GrandTotal)}" +
-          $"{Environment.NewLine}Printing and PDF will be available from Invoice History in the next update.";
+          $"{Environment.NewLine}You can print it now, or later from Invoice History.";
 
     // ---------- Loading ----------
     public override async Task InitializeAsync()
@@ -275,9 +274,12 @@ public sealed class CreateInvoiceViewModel : PageViewModel
         CommandManager.InvalidateRequerySuggested();
     }
 
+    public override bool HasUnsavedWork =>
+        !IsSaved && (Lines.Count > 0 || !string.IsNullOrWhiteSpace(EntryDescription));
+
     public override bool ConfirmLeave()
     {
-        if (IsSaved || (Lines.Count == 0 && string.IsNullOrWhiteSpace(EntryDescription)))
+        if (!HasUnsavedWork)
         {
             return true;
         }
@@ -338,29 +340,9 @@ public sealed class CreateInvoiceViewModel : PageViewModel
         SelectedCustomer = selectId is null ? null : Customers.FirstOrDefault(c => c.Id == selectId);
     }
 
-    private async Task RefreshNextNumberAsync()
-    {
-        if (InvoiceDate is not { } date)
-        {
-            NextNumberText = string.Empty;
-            return;
-        }
-
-        var preview = await _invoices.PreviewNextNumberAsync(DateOnly.FromDateTime(date));
-        NextNumberText = preview ?? string.Empty;
-    }
-
-    private async void RefreshNextNumberInBackground()
-    {
-        try
-        {
-            await RefreshNextNumberAsync();
-        }
-        catch (Exception)
-        {
-            NextNumberText = string.Empty; // Only a preview; the real number is assigned on save.
-        }
-    }
+    /// <summary>Numbers never restart, so the preview does not depend on the invoice date.</summary>
+    private async Task RefreshNextNumberAsync() =>
+        NextNumberText = await _invoices.PreviewNextNumberAsync() ?? string.Empty;
 
     private DateTime Today() => _timeProvider.GetLocalNow().Date;
 
@@ -620,25 +602,9 @@ public sealed class CreateInvoiceViewModel : PageViewModel
             return;
         }
 
-        var reason = _dialogs.PromptForText(
-            "Cancel invoice",
-            $"Why is invoice {SavedInvoice.InvoiceNumber} being cancelled?\n\n" +
-            "It will stay in Invoice History marked CANCELLED, and its number will not be used again.",
-            "Cancel invoice");
-
-        if (reason is null)
+        if (await _actions.CancelAsync(SavedInvoice.Id, SavedInvoice.InvoiceNumber))
         {
-            return;
-        }
-
-        try
-        {
-            await _invoices.CancelAsync(SavedInvoice.Id, reason);
             IsSavedInvoiceCancelled = true;
-        }
-        catch (ValidationException ex)
-        {
-            _dialogs.ShowError(string.Join("\n", ex.Errors));
         }
     }
 }

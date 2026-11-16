@@ -13,6 +13,7 @@ public static class DependencyInjection
         services.AddTransient<ICustomerService, CustomerService>();
         services.AddTransient<IInvoiceService, InvoiceService>();
         services.AddTransient<IInvoiceNumberingService, InvoiceNumberingService>();
+        services.AddTransient<IInvoicePrintService, InvoicePrintService>();
         return services;
     }
 }
