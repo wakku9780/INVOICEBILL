@@ -11,7 +11,7 @@
     <StackPanel>
         <StackPanel Style="{StaticResource Field}">
             <TextBlock Style="{StaticResource FieldLabel}" Text="Customer name *" />
-            <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Tag="e.g. KATARIYA TEXTILES" />
+            <TextBox Text="{Binding Name, UpdateSourceTrigger=PropertyChanged}" Tag="Customer Firm Name" />
         </StackPanel>
 
         <StackPanel Style="{StaticResource Field}">
