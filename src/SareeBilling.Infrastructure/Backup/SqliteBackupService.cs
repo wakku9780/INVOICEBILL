@@ -158,6 +158,29 @@ internal sealed class SqliteBackupService : IBackupService
         }, cancellationToken);
     }
 
+    public async Task<string?> CreateSafetyCopyAsync(string label, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(label);
+        if (!File.Exists(_paths.DatabasePath))
+        {
+            return null;
+        }
+
+        var safeLabel = string.Concat(label.Select(c => Path.GetInvalidFileNameChars().Contains(c) ? '-' : c));
+        var stamp = _timeProvider.GetLocalNow().ToString("yyyyMMdd-HHmmss", CultureInfo.InvariantCulture);
+        var target = UniquePath(Path.Combine(_paths.AutoBackupDirectory, $"{safeLabel}-{stamp}.db"));
+
+        await Task.Run(() =>
+        {
+            Directory.CreateDirectory(_paths.AutoBackupDirectory);
+            CopyDatabase(_paths.DatabasePath, target);
+            EnsureHealthy(target);
+        }, cancellationToken);
+
+        _logger.LogInformation("Safety copy created at {Path}", target);
+        return target;
+    }
+
     public DateTime? GetLastManualBackupTime()
     {
         var marker = Path.Combine(_paths.RootDirectory, LastBackupMarker);

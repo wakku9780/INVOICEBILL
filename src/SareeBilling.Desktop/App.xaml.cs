@@ -10,6 +10,7 @@ using SareeBilling.Desktop.Navigation;
 using SareeBilling.Desktop.Services;
 using SareeBilling.Desktop.ViewModels;
 using SareeBilling.Infrastructure;
+using SareeBilling.Infrastructure.Updates;
 
 namespace SareeBilling.Desktop;
 
@@ -23,6 +24,11 @@ public partial class App : System.Windows.Application
 #endif
 
     private const string SingleInstanceMutexName = @"Local\SareeBilling.SingleInstance";
+
+    // Public repository that holds ONLY installers and release notes (no source code).
+    // The app reads it without any token, so nothing secret is built into SareeBilling.exe.
+    private const string ReleasesOwner = "wakku9780";
+    private const string ReleasesRepository = "SareeBilling-Releases";
 
     private Mutex? _singleInstanceMutex;
     private IHost? _host;
@@ -59,6 +65,13 @@ public partial class App : System.Windows.Application
             mainWindow.Show();
 
             await RunDailyBackupAsync();
+
+            var updates = _host.Services.GetRequiredService<IUpdateCoordinator>();
+            updates.ReportPreviousUpdate();
+#if !DEBUG
+            // Quiet check: shows a banner if a newer version exists; does nothing when offline.
+            await updates.CheckQuietlyAsync();
+#endif
         }
         catch (Exception ex)
         {
@@ -96,12 +109,17 @@ public partial class App : System.Windows.Application
 
         builder.Services.AddApplication();
         builder.Services.AddInfrastructure(paths);
+        builder.Services.AddGitHubUpdates(new UpdateSettings(
+            ReleasesOwner,
+            ReleasesRepository,
+            typeof(App).Assembly.GetName().Version ?? new Version(1, 0, 0)));
 
         // Desktop services
         builder.Services.AddSingleton(errorLog);
         builder.Services.AddSingleton<IDialogService, DialogService>();
         builder.Services.AddSingleton<INavigationService, NavigationService>();
         builder.Services.AddSingleton<IInvoiceActions, InvoiceActions>();
+        builder.Services.AddSingleton<IUpdateCoordinator, UpdateCoordinator>();
 
         // Window and pages (pages are transient: each visit loads fresh data)
         builder.Services.AddSingleton<MainViewModel>();

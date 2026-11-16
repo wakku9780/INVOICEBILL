@@ -27,4 +27,12 @@ public static class DependencyInjection
 
         return services;
     }
+
+    /// <summary>Update checks against a public GitHub releases repository.</summary>
+    public static IServiceCollection AddGitHubUpdates(this IServiceCollection services, Updates.UpdateSettings settings)
+    {
+        services.AddSingleton(settings);
+        services.AddSingleton<Application.Updates.IUpdateService, Updates.GitHubUpdateService>();
+        return services;
+    }
 }

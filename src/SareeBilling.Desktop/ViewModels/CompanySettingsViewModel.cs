@@ -15,6 +15,8 @@ public sealed class CompanySettingsViewModel : PageViewModel
     private readonly ICompanyProfileService _service;
     private readonly IInvoiceNumberingService _numbering;
     private readonly IDialogService _dialogs;
+    private readonly IUpdateCoordinator _updates;
+    private string? _updateStatusText;
 
     private int _loadedNextNumber;
     private string _nextInvoiceNumber = string.Empty;
@@ -43,15 +45,18 @@ public sealed class CompanySettingsViewModel : PageViewModel
     public CompanySettingsViewModel(
         ICompanyProfileService service,
         IInvoiceNumberingService numbering,
-        IDialogService dialogs)
+        IDialogService dialogs,
+        IUpdateCoordinator updates)
     {
         _service = service;
         _numbering = numbering;
         _dialogs = dialogs;
+        _updates = updates;
 
         SaveCommand = new AsyncRelayCommand(SaveAsync, () => _isLoaded);
         ChooseLogoCommand = new RelayCommand(ChooseLogo);
         RemoveLogoCommand = new RelayCommand(() => Logo = null, () => Logo is not null);
+        CheckForUpdatesCommand = new AsyncRelayCommand(CheckForUpdatesAsync);
     }
 
     public override string Title => "Company Settings";
@@ -61,6 +66,11 @@ public sealed class CompanySettingsViewModel : PageViewModel
     public ICommand SaveCommand { get; }
     public ICommand ChooseLogoCommand { get; }
     public ICommand RemoveLogoCommand { get; }
+    public ICommand CheckForUpdatesCommand { get; }
+
+    public string AppVersionText => $"You are using Saree Billing version {_updates.CurrentVersionText}.";
+
+    public string? UpdateStatusText { get => _updateStatusText; private set => SetProperty(ref _updateStatusText, value); }
 
     public bool IsFirstSetup
     {
@@ -246,5 +256,11 @@ public sealed class CompanySettingsViewModel : PageViewModel
         }
 
         Logo = File.ReadAllBytes(path);
+    }
+
+    private async Task CheckForUpdatesAsync()
+    {
+        UpdateStatusText = "Checking…";
+        UpdateStatusText = await _updates.CheckNowAsync();
     }
 }

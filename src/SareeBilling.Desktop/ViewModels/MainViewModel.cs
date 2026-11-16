@@ -1,5 +1,7 @@
+using System.Windows.Input;
 using SareeBilling.Desktop.Mvvm;
 using SareeBilling.Desktop.Navigation;
+using SareeBilling.Desktop.Services;
 
 namespace SareeBilling.Desktop.ViewModels;
 
@@ -9,13 +11,40 @@ public sealed record NavigationItem(AppPage Page, string Title, string Glyph);
 public sealed class MainViewModel : ObservableObject
 {
     private readonly INavigationService _navigation;
+    private readonly IUpdateCoordinator _updates;
     private NavigationItem? _selectedNavigationItem;
 
-    public MainViewModel(INavigationService navigation)
+    public MainViewModel(INavigationService navigation, IUpdateCoordinator updates)
     {
         _navigation = navigation;
         _navigation.Navigated += OnNavigated;
+
+        _updates = updates;
+        _updates.AvailableUpdateChanged += (_, _) =>
+        {
+            OnPropertyChanged(nameof(IsUpdateBannerVisible));
+            OnPropertyChanged(nameof(UpdateBannerText));
+        };
+        ShowUpdateCommand = new RelayCommand(_updates.ShowUpdateDetails);
+        RemindUpdateLaterCommand = new RelayCommand(() =>
+        {
+            if (_updates.AvailableUpdate is { } release)
+            {
+                _updates.RemindLater(release);
+            }
+        });
     }
+
+    /// <summary>A small banner (not a pop-up) so an update never interrupts invoice work.</summary>
+    public bool IsUpdateBannerVisible => _updates.AvailableUpdate is not null;
+
+    public string UpdateBannerText => _updates.AvailableUpdate is { } release
+        ? $"A new version of Saree Billing ({release.Version}) is available."
+        : string.Empty;
+
+    public ICommand ShowUpdateCommand { get; }
+
+    public ICommand RemindUpdateLaterCommand { get; }
 
     public IReadOnlyList<NavigationItem> NavigationItems { get; } =
     [

@@ -274,9 +274,12 @@ public sealed class CreateInvoiceViewModel : PageViewModel
         CommandManager.InvalidateRequerySuggested();
     }
 
+    public override bool HasUnsavedWork =>
+        !IsSaved && (Lines.Count > 0 || !string.IsNullOrWhiteSpace(EntryDescription));
+
     public override bool ConfirmLeave()
     {
-        if (IsSaved || (Lines.Count == 0 && string.IsNullOrWhiteSpace(EntryDescription)))
+        if (!HasUnsavedWork)
         {
             return true;
         }

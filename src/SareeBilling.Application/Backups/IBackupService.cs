@@ -52,4 +52,11 @@ public interface IBackupService
 
     /// <summary>Time of the newest manual backup in the default folder, or null if none.</summary>
     DateTime? GetLastManualBackupTime();
+
+    /// <summary>
+    /// Safety copy in AutoBackups named "{label}-yyyyMMdd-HHmmss.db" (e.g. before an app update).
+    /// Does not count as a manual backup.
+    /// </summary>
+    /// <returns>Path of the copy, or null when there is no database yet.</returns>
+    Task<string?> CreateSafetyCopyAsync(string label, CancellationToken cancellationToken = default);
 }

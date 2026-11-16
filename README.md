@@ -22,8 +22,33 @@ Offline GST billing and invoicing for a saree wholesale business — a Windows d
 
 ### Updating
 
-Run the newer `SareeBilling-Setup-<version>.exe`. Close the app first (setup will ask).
-Invoices, customers and settings are kept.
+From version 1.1.0 the app checks for updates by itself each time it starts. When a new version
+is published, a banner appears at the top: **See what's new → Update now**. The app backs up the
+database, downloads and checks the new setup, closes, updates and opens again. You can also use
+**Company Settings → App updates → Check for updates**. Without internet the app simply skips the check.
+
+Updating by hand still works: run the newer `SareeBilling-Setup-<version>.exe`.
+Invoices, customers and settings are always kept.
+
+## Publishing a new version (developer)
+
+Releases are published to the **public** repository
+[`wakku9780/SareeBilling-Releases`](https://github.com/wakku9780/SareeBilling-Releases), which contains
+only installers and release notes. The app reads it without any token, so the source repository can
+stay private.
+
+1. Raise `<Version>` in `Directory.Build.props` (e.g. `1.1.0` → `1.1.1`).
+2. Run `.\build-installer.ps1` → `artifacts\installer\SareeBilling-Setup-1.1.1.exe`.
+3. On GitHub, open **SareeBilling-Releases → Releases → Draft a new release**:
+   - **Tag**: `v1.1.1` (must match the version, with a leading `v`)
+   - **Title**: `Saree Billing 1.1.1`
+   - **Description**: what changed, in plain words — users see this text in the app
+   - **Attach** `SareeBilling-Setup-1.1.1.exe` (the name must start with `SareeBilling-Setup-`)
+   - Leave "Set as a pre-release" unticked, then **Publish release**.
+4. Every installed copy shows the update the next time it starts.
+
+GitHub stores a SHA-256 fingerprint for each uploaded file; the app refuses a download that does
+not match it.
 
 ### Where the data is
 
