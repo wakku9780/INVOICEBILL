@@ -28,8 +28,8 @@ public class FormattingTests
     [Fact]
     public void Invoice_number_format()
     {
-        Assert.Equal("JAS/2026-27/161", InvoiceNumber.Format("JAS", "2026-27", 161));
-        Assert.Throws<ArgumentOutOfRangeException>(() => InvoiceNumber.Format("JAS", "2026-27", 0));
+        Assert.Equal("161", InvoiceNumber.Format(161));
+        Assert.Throws<ArgumentOutOfRangeException>(() => InvoiceNumber.Format(0));
     }
 
     [Fact]

@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using SareeBilling.Application.Abstractions;
 using SareeBilling.Application.Invoices;
+using SareeBilling.Domain.Common;
 using SareeBilling.Domain.Entities;
 using SareeBilling.Domain.Enums;
 using SareeBilling.Infrastructure.Persistence;
@@ -16,11 +17,9 @@ internal sealed class InvoiceRepository : IInvoiceRepository
         _contextFactory = contextFactory;
     }
 
-    public async Task<Invoice> AddWithNextNumberAsync(
-        Invoice invoice, Func<int, string> formatNumber, CancellationToken cancellationToken = default)
+    public async Task<Invoice> AddWithNextNumberAsync(Invoice invoice, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(invoice);
-        ArgumentNullException.ThrowIfNull(formatNumber);
 
         await using var db = await _contextFactory.CreateDbContextAsync(cancellationToken);
 
@@ -29,21 +28,11 @@ internal sealed class InvoiceRepository : IInvoiceRepository
         // never receive the same number. If anything fails, nothing is saved.
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
 
-        var last = await GetLastSequenceAsync(db, invoice.FinancialYear, cancellationToken);
-        var next = last + 1;
-
-        var sequence = await db.InvoiceSequences.FindAsync([invoice.FinancialYear], cancellationToken);
-        if (sequence is null)
-        {
-            db.InvoiceSequences.Add(new InvoiceSequence { FinancialYear = invoice.FinancialYear, LastNumber = next });
-        }
-        else
-        {
-            sequence.LastNumber = next;
-        }
+        var next = await GetLastNumberAsync(db, cancellationToken) + 1;
+        await SetCounterAsync(db, next, cancellationToken);
 
         invoice.SequenceNumber = next;
-        invoice.InvoiceNumber = formatNumber(next);
+        invoice.InvoiceNumber = InvoiceNumber.Format(next);
         db.Invoices.Add(invoice);
 
         await db.SaveChangesAsync(cancellationToken);
@@ -52,31 +41,22 @@ internal sealed class InvoiceRepository : IInvoiceRepository
         return invoice;
     }
 
-    public async Task<int> GetLastSequenceAsync(string financialYear, CancellationToken cancellationToken = default)
+    public async Task<int> GetLastNumberAsync(CancellationToken cancellationToken = default)
     {
         await using var db = await _contextFactory.CreateDbContextAsync(cancellationToken);
-        return await GetLastSequenceAsync(db, financialYear, cancellationToken);
+        return await GetLastNumberAsync(db, cancellationToken);
     }
 
-    public async Task<int> GetHighestUsedSequenceAsync(string financialYear, CancellationToken cancellationToken = default)
+    public async Task<int> GetHighestUsedNumberAsync(CancellationToken cancellationToken = default)
     {
         await using var db = await _contextFactory.CreateDbContextAsync(cancellationToken);
-        return await HighestUsedAsync(db, financialYear, cancellationToken);
+        return await HighestUsedAsync(db, cancellationToken);
     }
 
-    public async Task SetLastSequenceAsync(string financialYear, int lastNumber, CancellationToken cancellationToken = default)
+    public async Task SetLastNumberAsync(int lastNumber, CancellationToken cancellationToken = default)
     {
         await using var db = await _contextFactory.CreateDbContextAsync(cancellationToken);
-        var sequence = await db.InvoiceSequences.FindAsync([financialYear], cancellationToken);
-        if (sequence is null)
-        {
-            db.InvoiceSequences.Add(new InvoiceSequence { FinancialYear = financialYear, LastNumber = lastNumber });
-        }
-        else
-        {
-            sequence.LastNumber = lastNumber;
-        }
-
+        await SetCounterAsync(db, lastNumber, cancellationToken);
         await db.SaveChangesAsync(cancellationToken);
     }
 
@@ -98,7 +78,15 @@ internal sealed class InvoiceRepository : IInvoiceRepository
         await using var db = await _contextFactory.CreateDbContextAsync(cancellationToken);
         IQueryable<Invoice> query = db.Invoices.AsNoTracking();
 
-        if (!string.IsNullOrWhiteSpace(criteria.Text))
+        if (!string.IsNullOrWhiteSpace(criteria.Text) && criteria.Text.Trim().All(char.IsAsciiDigit))
+        {
+            // Only digits: the user is looking for an invoice number, e.g. "161" — match it exactly
+            // (also older numbers such as "JAS/2026-27/161"), not every GSTIN containing those digits.
+            var number = criteria.Text.Trim();
+            var oldStyleSuffix = "/" + number;
+            query = query.Where(i => i.InvoiceNumber == number || i.InvoiceNumber.EndsWith(oldStyleSuffix));
+        }
+        else if (!string.IsNullOrWhiteSpace(criteria.Text))
         {
             var pattern = "%" + criteria.Text.Trim().Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_") + "%";
             query = query.Where(i =>
@@ -149,18 +137,28 @@ internal sealed class InvoiceRepository : IInvoiceRepository
     /// The larger of the stored counter and the highest saved invoice, so numbering stays
     /// correct even if the counter row were ever missing (e.g. an old backup).
     /// </summary>
-    private static async Task<int> GetLastSequenceAsync(AppDbContext db, string financialYear, CancellationToken cancellationToken)
+    private static async Task<int> GetLastNumberAsync(AppDbContext db, CancellationToken cancellationToken)
     {
-        var stored = await db.InvoiceSequences
-            .Where(s => s.FinancialYear == financialYear)
-            .Select(s => (int?)s.LastNumber)
+        var stored = await db.InvoiceCounters
+            .Select(c => (int?)c.LastNumber)
             .SingleOrDefaultAsync(cancellationToken) ?? 0;
 
-        return Math.Max(stored, await HighestUsedAsync(db, financialYear, cancellationToken));
+        return Math.Max(stored, await HighestUsedAsync(db, cancellationToken));
     }
 
-    private static async Task<int> HighestUsedAsync(AppDbContext db, string financialYear, CancellationToken cancellationToken) =>
-        await db.Invoices
-            .Where(i => i.FinancialYear == financialYear)
-            .MaxAsync(i => (int?)i.SequenceNumber, cancellationToken) ?? 0;
+    private static async Task<int> HighestUsedAsync(AppDbContext db, CancellationToken cancellationToken) =>
+        await db.Invoices.MaxAsync(i => (int?)i.SequenceNumber, cancellationToken) ?? 0;
+
+    private static async Task SetCounterAsync(AppDbContext db, int lastNumber, CancellationToken cancellationToken)
+    {
+        var counter = await db.InvoiceCounters.FindAsync([InvoiceCounter.SingletonId], cancellationToken);
+        if (counter is null)
+        {
+            db.InvoiceCounters.Add(new InvoiceCounter { LastNumber = lastNumber });
+        }
+        else
+        {
+            counter.LastNumber = lastNumber;
+        }
+    }
 }

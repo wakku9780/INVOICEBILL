@@ -63,7 +63,8 @@ internal sealed class InvoiceConfiguration : IEntityTypeConfiguration<Invoice>
         builder.Property(i => i.AmountInWords).HasMaxLength(FieldLengths.LongText).IsRequired();
 
         builder.HasIndex(i => i.InvoiceNumber).IsUnique();
-        builder.HasIndex(i => new { i.FinancialYear, i.SequenceNumber }).IsUnique();
+        // Uniqueness is guaranteed by the unique InvoiceNumber index; this index speeds up "highest number" lookups.
+        builder.HasIndex(i => i.SequenceNumber);
         builder.HasIndex(i => i.InvoiceDate);
         builder.HasIndex(i => i.BuyerName);
 

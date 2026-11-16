@@ -4,7 +4,10 @@ namespace SareeBilling.Application.Invoices;
 
 public sealed record InvoiceSearchCriteria
 {
-    /// <summary>Matches part of the invoice number or the customer name.</summary>
+    /// <summary>
+    /// Digits only (e.g. "161") → that exact invoice number.
+    /// Anything else → part of the customer name or GSTIN (or an older invoice number).
+    /// </summary>
     public string? Text { get; init; }
 
     public DateOnly? FromDate { get; init; }

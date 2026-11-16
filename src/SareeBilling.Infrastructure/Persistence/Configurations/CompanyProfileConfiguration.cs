@@ -27,7 +27,6 @@ internal sealed class CompanyProfileConfiguration : IEntityTypeConfiguration<Com
         builder.Property(c => c.Phone).HasMaxLength(FieldLengths.Phone);
         builder.Property(c => c.Email).HasMaxLength(FieldLengths.Email);
         builder.Property(c => c.Logo);
-        builder.Property(c => c.InvoicePrefix).HasMaxLength(FieldLengths.InvoicePrefix).IsRequired();
         builder.Property(c => c.BankName).HasMaxLength(FieldLengths.Name);
         builder.Property(c => c.BankAccountNumber).HasMaxLength(FieldLengths.BankAccount);
         builder.Property(c => c.BankIfsc).HasMaxLength(FieldLengths.Ifsc);

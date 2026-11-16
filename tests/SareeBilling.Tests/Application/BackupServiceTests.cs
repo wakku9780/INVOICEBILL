@@ -24,7 +24,7 @@ public sealed class BackupServiceTests : IAsyncLifetime
         await _host.Get<ICompanyProfileService>().SaveAsync(new CompanyProfileDto
         {
             Name = "J A SAREES", AddressLine1 = "Purani Basti", City = "Azamgarh", StateCode = "09",
-            Gstin = "09ACSPH2858M1ZT", InvoicePrefix = "JAS", DeclarationText = "Declaration"
+            Gstin = "09ACSPH2858M1ZT", DeclarationText = "Declaration"
         });
         var customerId = await Customers.SaveAsync(new CustomerDto
         {
@@ -54,7 +54,7 @@ public sealed class BackupServiceTests : IAsyncLifetime
         Assert.Equal("J A SAREES", contents.CompanyName);
         Assert.Equal(1, contents.InvoiceCount);
         Assert.Equal(1, contents.CustomerCount);
-        Assert.Equal("JAS/2026-27/1", contents.LastInvoiceNumber);
+        Assert.Equal("1", contents.LastInvoiceNumber);
         Assert.Equal(new DateOnly(2026, 11, 1), contents.LastInvoiceDate);
     }
 
@@ -77,7 +77,7 @@ public sealed class BackupServiceTests : IAsyncLifetime
         Assert.Equal(2, (await Backups.InspectAsync(safetyCopy)).CustomerCount);
 
         // The app keeps working normally after a restore: numbering continues correctly.
-        Assert.Equal("JAS/2026-27/2", await _host.Get<IInvoiceService>().PreviewNextNumberAsync(new DateOnly(2026, 11, 2)));
+        Assert.Equal("2", await _host.Get<IInvoiceService>().PreviewNextNumberAsync());
     }
 
     [Fact]

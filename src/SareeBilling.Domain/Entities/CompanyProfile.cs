@@ -29,9 +29,6 @@ public class CompanyProfile : AuditableEntity
     /// </summary>
     public byte[]? Logo { get; set; }
 
-    /// <summary>Prefix for invoice numbers, e.g. "JAS" gives "JAS/2026-27/161".</summary>
-    public string InvoicePrefix { get; set; } = string.Empty;
-
     public string? BankName { get; set; }
     public string? BankAccountNumber { get; set; }
     public string? BankIfsc { get; set; }

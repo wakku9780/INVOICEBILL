@@ -22,7 +22,6 @@ public sealed class CompanyProfileServiceTests : IAsyncLifetime
         StateCode = "09",
         Gstin = "09ACSPH2858M1ZT",
         Phone = "9000000003",
-        InvoicePrefix = "jas",
         BankIfsc = "sbin0001234",
         DeclarationText = "We declare that this invoice shows the actual price."
     };
@@ -43,7 +42,6 @@ public sealed class CompanyProfileServiceTests : IAsyncLifetime
         Assert.NotNull(saved);
         Assert.Equal("9000000004", saved.Phone);
         Assert.Equal("Uttar Pradesh", saved.State);
-        Assert.Equal("JAS", saved.InvoicePrefix);
         Assert.Equal("SBIN0001234", saved.BankIfsc);
     }
 
@@ -53,15 +51,6 @@ public sealed class CompanyProfileServiceTests : IAsyncLifetime
         var ex = await Assert.ThrowsAsync<ValidationException>(() => Service.SaveAsync(JaSarees() with { Gstin = "" }));
 
         Assert.Contains("GSTIN is required for your company.", ex.Errors);
-    }
-
-    [Theory]
-    [InlineData("J A S")]
-    [InlineData("JA/S")]
-    [InlineData("TOOLONGPREFIX")]
-    public async Task Invalid_invoice_prefix_is_rejected(string prefix)
-    {
-        await Assert.ThrowsAsync<ValidationException>(() => Service.SaveAsync(JaSarees() with { InvoicePrefix = prefix }));
     }
 
     [Fact]

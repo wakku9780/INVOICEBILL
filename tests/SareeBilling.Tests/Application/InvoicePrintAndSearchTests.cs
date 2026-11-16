@@ -35,7 +35,6 @@ public sealed class InvoicePrintAndSearchTests : IAsyncLifetime
             StateCode = "09",
             Gstin = "09ACSPH2858M1ZT",
             Phone = "9000000003",
-            InvoicePrefix = "JAS",
             BankName = "State Bank of India",
             BankAccountNumber = "00000000000",
             BankIfsc = "SBIN0001234",
@@ -109,7 +108,7 @@ public sealed class InvoicePrintAndSearchTests : IAsyncLifetime
 
         Assert.Equal("%PDF", Encoding.ASCII.GetString(printout.Pdf, 0, 4));
         Assert.Single(printout.PageImages);
-        Assert.Equal("JAS-2026-27-1.pdf", printout.SuggestedFileName);
+        Assert.Equal("Invoice-1.pdf", printout.SuggestedFileName);
         Assert.Equal("KATARIYA TEXTILES", printout.BuyerName);
         Assert.False(printout.IsCancelled);
     }
@@ -169,7 +168,8 @@ public sealed class InvoicePrintAndSearchTests : IAsyncLifetime
         Assert.Equal(InvoiceStatus.Cancelled, all[0].Status);
 
         Assert.Equal(2, (await Invoices.SearchAsync(new InvoiceSearchCriteria { Text = "katariya" })).Count);
-        Assert.Single(await Invoices.SearchAsync(new InvoiceSearchCriteria { Text = "/2026-27/2" }));
+        var byNumber = Assert.Single(await Invoices.SearchAsync(new InvoiceSearchCriteria { Text = "2" }));
+        Assert.Equal(second.Id, byNumber.Id); // digits = exact invoice number, not GSTINs containing "2"
         Assert.Single(await Invoices.SearchAsync(new InvoiceSearchCriteria { Text = "AAOFK", IncludeCancelled = false }));
 
         var november = await Invoices.SearchAsync(new InvoiceSearchCriteria
@@ -186,8 +186,8 @@ public sealed class InvoicePrintAndSearchTests : IAsyncLifetime
     }
 
     [Theory]
-    [InlineData("JAS/2026-27/161", "JAS-2026-27-161.pdf")]
-    [InlineData("A-B/2025-26/7", "A-B-2025-26-7.pdf")]
+    [InlineData("161", "Invoice-161.pdf")]
+    [InlineData("JAS/2026-27/7", "Invoice-JAS-2026-27-7.pdf")]
     public void File_name_has_no_slashes(string number, string expected)
     {
         Assert.Equal(expected, InvoicePrintService.SuggestFileName(number));

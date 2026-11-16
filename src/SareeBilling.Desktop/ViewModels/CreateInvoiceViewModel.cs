@@ -180,17 +180,7 @@ public sealed class CreateInvoiceViewModel : PageViewModel
         }
     }
 
-    public DateTime? InvoiceDate
-    {
-        get => _invoiceDate;
-        set
-        {
-            if (SetProperty(ref _invoiceDate, value))
-            {
-                RefreshNextNumberInBackground();
-            }
-        }
-    }
+    public DateTime? InvoiceDate { get => _invoiceDate; set => SetProperty(ref _invoiceDate, value); }
 
     public string NextNumberText { get => _nextNumberText; private set => SetProperty(ref _nextNumberText, value); }
 
@@ -347,29 +337,9 @@ public sealed class CreateInvoiceViewModel : PageViewModel
         SelectedCustomer = selectId is null ? null : Customers.FirstOrDefault(c => c.Id == selectId);
     }
 
-    private async Task RefreshNextNumberAsync()
-    {
-        if (InvoiceDate is not { } date)
-        {
-            NextNumberText = string.Empty;
-            return;
-        }
-
-        var preview = await _invoices.PreviewNextNumberAsync(DateOnly.FromDateTime(date));
-        NextNumberText = preview ?? string.Empty;
-    }
-
-    private async void RefreshNextNumberInBackground()
-    {
-        try
-        {
-            await RefreshNextNumberAsync();
-        }
-        catch (Exception)
-        {
-            NextNumberText = string.Empty; // Only a preview; the real number is assigned on save.
-        }
-    }
+    /// <summary>Numbers never restart, so the preview does not depend on the invoice date.</summary>
+    private async Task RefreshNextNumberAsync() =>
+        NextNumberText = await _invoices.PreviewNextNumberAsync() ?? string.Empty;
 
     private DateTime Today() => _timeProvider.GetLocalNow().Date;
 

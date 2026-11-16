@@ -44,7 +44,7 @@ public sealed class DatabaseSchemaTests : IAsyncLifetime
         Assert.Contains("Customers", tables);
         Assert.Contains("Invoices", tables);
         Assert.Contains("InvoiceItems", tables);
-        Assert.Contains("InvoiceSequences", tables);
+        Assert.Contains("InvoiceCounter", tables);
         Assert.Empty(await db.Database.GetPendingMigrationsAsync());
     }
 
@@ -54,7 +54,7 @@ public sealed class DatabaseSchemaTests : IAsyncLifetime
         int invoiceId;
         await using (var db = CreateContext())
         {
-            var invoice = NewInvoice(await AddCustomerAsync(db), "JAS/2026-27/1", 1);
+            var invoice = NewInvoice(await AddCustomerAsync(db), "1", 1);
             invoice.Items.Add(NewItem(1, quantity: 53m, rate: 6300m));
             db.Invoices.Add(invoice);
             await db.SaveChangesAsync();
@@ -81,10 +81,10 @@ public sealed class DatabaseSchemaTests : IAsyncLifetime
         await using var db = CreateContext();
         var customer = await AddCustomerAsync(db);
 
-        db.Invoices.Add(NewInvoice(customer, "JAS/2026-27/5", 5));
+        db.Invoices.Add(NewInvoice(customer, "5", 5));
         await db.SaveChangesAsync();
 
-        db.Invoices.Add(NewInvoice(customer, "JAS/2026-27/5", 6));
+        db.Invoices.Add(NewInvoice(customer, "5", 6));
         await Assert.ThrowsAsync<DbUpdateException>(() => db.SaveChangesAsync());
     }
 
@@ -95,7 +95,7 @@ public sealed class DatabaseSchemaTests : IAsyncLifetime
     public async Task Zero_or_negative_quantity_and_negative_rate_are_rejected(decimal quantity, decimal rate)
     {
         await using var db = CreateContext();
-        var invoice = NewInvoice(await AddCustomerAsync(db), "JAS/2026-27/9", 9);
+        var invoice = NewInvoice(await AddCustomerAsync(db), "9", 9);
         invoice.Items.Add(NewItem(1, quantity, rate));
         db.Invoices.Add(invoice);
 
@@ -109,7 +109,7 @@ public sealed class DatabaseSchemaTests : IAsyncLifetime
         await using (var db = CreateContext())
         {
             var customer = await AddCustomerAsync(db);
-            db.Invoices.Add(NewInvoice(customer, "JAS/2026-27/2", 2));
+            db.Invoices.Add(NewInvoice(customer, "2", 2));
             await db.SaveChangesAsync();
             customerId = customer.Id;
         }

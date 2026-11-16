@@ -5,7 +5,7 @@ Offline GST billing and invoicing for a saree wholesale business — a Windows d
 
 - Company profile, customers (GSTIN validation, state codes)
 - GST invoices with automatic CGST + SGST (same state) or IGST (other state), round off,
-  amount in words (Lakh/Crore), invoice numbering per financial year
+  amount in words (Lakh/Crore), plain invoice numbers 1, 2, 3 … that never restart
 - Tally-style A4 invoice: preview, print, save as PDF
 - Invoice history with search, reprint and cancel (cancelled numbers are never reused)
 - Backup & restore, plus automatic daily backups

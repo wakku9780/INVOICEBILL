@@ -63,11 +63,11 @@ public sealed class InvoicePrintService : IInvoicePrintService
             images);
     }
 
-    /// <example>"JAS/2026-27/161" → "JAS-2026-27-161.pdf"</example>
+    /// <example>"161" → "Invoice-161.pdf"; an older number "JAS/2026-27/1" → "Invoice-JAS-2026-27-1.pdf"</example>
     public static string SuggestFileName(string invoiceNumber)
     {
         var invalid = Path.GetInvalidFileNameChars();
         var safe = new string(invoiceNumber.Select(c => c == '/' || invalid.Contains(c) ? '-' : c).ToArray());
-        return safe + ".pdf";
+        return $"Invoice-{safe}.pdf";
     }
 }
