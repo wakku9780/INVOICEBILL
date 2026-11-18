@@ -8,6 +8,6 @@
     <WarningsAsErrors>$(WarningsAsErrors);nullable</WarningsAsErrors>
     <Company>J A Sarees</Company>
     <Product>Saree Billing</Product>
-    <Version>1.1.1</Version>
+    <Version>1.2.0</Version>
   </PropertyGroup>
 </Project>
