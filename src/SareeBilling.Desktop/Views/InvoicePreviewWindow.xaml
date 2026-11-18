@@ -27,7 +27,7 @@
                             Margin="8,0,0,0" MinWidth="110" />
                 </StackPanel>
                 <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
-                    <TextBlock Text="{Binding Printout.InvoiceNumber}" FontWeight="SemiBold" FontSize="16" />
+                    <TextBlock Text="{Binding Document.Title}" FontWeight="SemiBold" FontSize="16" />
                     <TextBlock Text="{Binding PageCountText}" Style="{StaticResource MutedText}" Margin="12,2,0,0" />
                     <Border Background="{StaticResource ErrorBackgroundBrush}" BorderBrush="{StaticResource ErrorBorderBrush}"
                             BorderThickness="1" CornerRadius="4" Padding="8,2" Margin="12,0,0,0"
@@ -41,7 +41,7 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
                       PanningMode="VerticalOnly">
             <ItemsControl ItemsSource="{Binding Pages}" Margin="24" HorizontalAlignment="Center" MaxWidth="900"
-                          AutomationProperties.Name="Invoice pages">
+                          AutomationProperties.Name="Document pages">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate>
                         <Border Background="White" Margin="0,0,0,24" BorderBrush="#C7CED6" BorderThickness="1">

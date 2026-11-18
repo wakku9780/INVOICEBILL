@@ -90,16 +90,19 @@
                 </Border>
                 <Border Style="{StaticResource StatCard}">
                     <StackPanel>
-                        <TextBlock Style="{StaticResource StatLabel}" Text="Taxable value" />
-                        <TextBlock Style="{StaticResource StatValue}" Text="{Binding TaxableText}" />
-                        <TextBlock Style="{StaticResource StatNote}" Text="Before GST" />
+                        <TextBlock Style="{StaticResource StatLabel}" Text="Collections (money received)" />
+                        <TextBlock Style="{StaticResource StatValue}" Text="{Binding Position.CollectionsText}"
+                                   Foreground="{StaticResource CollectionBrush}" />
+                        <TextBlock Style="{StaticResource StatNote}" Text="{Binding Position.CollectionsNote}" />
                     </StackPanel>
                 </Border>
                 <Border Style="{StaticResource StatCard}">
                     <StackPanel>
                         <TextBlock Style="{StaticResource StatLabel}" Text="GST collected" />
                         <TextBlock Style="{StaticResource StatValue}" Text="{Binding GstText}" />
-                        <TextBlock Style="{StaticResource StatNote}" Text="{Binding GstNote}" />
+                        <TextBlock Style="{StaticResource StatNote}">
+                            <Run Text="on taxable" /> <Run Text="{Binding TaxableText, Mode=OneWay}" />
+                        </TextBlock>
                     </StackPanel>
                 </Border>
                 <Border Style="{StaticResource StatCard}">
@@ -111,9 +114,36 @@
                 </Border>
             </UniformGrid>
 
+            <!-- ===== What customers owe today (not limited to the period) ===== -->
+            <TextBlock Style="{StaticResource MutedText}" Margin="0,8,0,8" Text="{Binding Position.AsOfText}" FontWeight="SemiBold" />
+            <UniformGrid Rows="1">
+                <Border Style="{StaticResource StatCard}" Background="{StaticResource ReceivableBackgroundBrush}"
+                        BorderBrush="{StaticResource ReceivableBorderBrush}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource StatLabel}" Text="Total receivables" Foreground="{StaticResource ReceivableBrush}" />
+                        <TextBlock Style="{StaticResource StatValue}" Text="{Binding Position.ReceivablesText}" Foreground="{StaticResource ReceivableBrush}" />
+                        <TextBlock Style="{StaticResource StatNote}" Text="{Binding Position.ReceivablesNote}" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource StatCard}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource StatLabel}" Text="Overdue" />
+                        <TextBlock Style="{StaticResource StatValue}" Text="{Binding Position.OverdueText}" Foreground="{StaticResource ErrorTextBrush}" />
+                        <TextBlock Style="{StaticResource StatNote}" Text="{Binding Position.OverdueNote}" />
+                    </StackPanel>
+                </Border>
+                <Border Style="{StaticResource StatCard}">
+                    <StackPanel>
+                        <TextBlock Style="{StaticResource StatLabel}" Text="Advances held" />
+                        <TextBlock Style="{StaticResource StatValue}" Text="{Binding Position.AdvanceText}" />
+                        <TextBlock Style="{StaticResource StatNote}" Text="Received, not yet matched to bills" />
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+
             <!-- ===== Quick actions ===== -->
             <TextBlock Style="{StaticResource SectionTitleText}" Text="Quick actions" Margin="0,12,0,12" />
-            <UniformGrid Rows="1">
+            <UniformGrid Columns="3">
                 <Button Style="{StaticResource QuickActionButton}" Background="{StaticResource AccentBrush}"
                         Foreground="White" BorderBrush="{StaticResource AccentBrush}"
                         Command="{Binding OpenPageCommand}" CommandParameter="{x:Static nav:AppPage.CreateInvoice}"
@@ -123,6 +153,25 @@
                                    VerticalAlignment="Center" />
                         <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE710;" Width="26" VerticalAlignment="Center" />
                         <TextBlock Text="Sales Invoice" VerticalAlignment="Center" />
+                    </DockPanel>
+                </Button>
+                <Button Style="{StaticResource QuickActionButton}"
+                        Command="{Binding OpenPageCommand}" CommandParameter="{x:Static nav:AppPage.ReceivePayment}"
+                        AutomationProperties.Name="Receive Payment (F6)">
+                    <DockPanel>
+                        <TextBlock DockPanel.Dock="Right" Text="F6" FontWeight="Normal" FontSize="12"
+                                   Foreground="{StaticResource TextSecondaryBrush}" VerticalAlignment="Center" />
+                        <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE8C7;" Width="26" VerticalAlignment="Center"
+                                   Foreground="{StaticResource CollectionBrush}" />
+                        <TextBlock Text="Receive Payment" VerticalAlignment="Center" />
+                    </DockPanel>
+                </Button>
+                <Button Style="{StaticResource QuickActionButton}"
+                        Command="{Binding OpenPageCommand}" CommandParameter="{x:Static nav:AppPage.OutstandingReceivables}">
+                    <DockPanel>
+                        <TextBlock FontFamily="{StaticResource IconFont}" Text="&#xE9D2;" Width="26" VerticalAlignment="Center"
+                                   Foreground="{StaticResource AccentBrush}" />
+                        <TextBlock Text="Outstanding" VerticalAlignment="Center" />
                     </DockPanel>
                 </Button>
                 <Button Style="{StaticResource QuickActionButton}"
@@ -170,11 +219,17 @@
                 <!-- Sales trend -->
                 <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource Card}" Padding="16">
                     <StackPanel>
-                        <TextBlock Style="{StaticResource SectionTitleText}" Text="Sales trend" />
+                        <TextBlock Style="{StaticResource SectionTitleText}" Text="Sales and collections" />
+                        <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                            <Border Width="10" Height="10" CornerRadius="2" Background="{StaticResource AccentBrush}" />
+                            <TextBlock Text="Sales" FontSize="12" Margin="6,0,16,0" Foreground="{StaticResource TextSecondaryBrush}" />
+                            <Border Width="10" Height="10" CornerRadius="2" Background="{StaticResource CollectionBrush}" />
+                            <TextBlock Text="Collections" FontSize="12" Margin="6,0,0,0" Foreground="{StaticResource TextSecondaryBrush}" />
+                        </StackPanel>
                         <TextBlock Style="{StaticResource MutedText}" FontSize="12" Text="{Binding TrendCaption}"
                                    TextWrapping="Wrap" Margin="0,2,0,12" />
                         <ItemsControl ItemsSource="{Binding Trend}" Focusable="False" Height="196"
-                                      AutomationProperties.Name="Sales by month">
+                                      AutomationProperties.Name="Sales and collections by month">
                             <ItemsControl.ItemsPanel>
                                 <ItemsPanelTemplate>
                                     <UniformGrid Rows="1" />
@@ -189,8 +244,12 @@
                                             <TextBlock Text="{Binding AmountText}" FontSize="11" HorizontalAlignment="Center"
                                                        TextTrimming="CharacterEllipsis" Margin="0,0,0,4"
                                                        Foreground="{StaticResource TextSecondaryBrush}" />
-                                            <Border Height="{Binding BarHeight}" MaxWidth="36" CornerRadius="3,3,0,0"
-                                                    Background="{StaticResource AccentBrush}" />
+                                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                                                <Border Height="{Binding BarHeight}" Width="16" CornerRadius="3,3,0,0"
+                                                        Background="{StaticResource AccentBrush}" VerticalAlignment="Bottom" />
+                                                <Border Height="{Binding CollectionHeight}" Width="16" CornerRadius="3,3,0,0" Margin="3,0,0,0"
+                                                        Background="{StaticResource CollectionBrush}" VerticalAlignment="Bottom" />
+                                            </StackPanel>
                                         </StackPanel>
                                     </DockPanel>
                                 </DataTemplate>
@@ -234,8 +293,43 @@
                     </StackPanel>
                 </Border>
 
+                <!-- Overdue payments -->
+                <Border Grid.Row="2" Grid.Column="2" Style="{StaticResource Card}" Padding="16">
+                    <StackPanel>
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="All outstanding"
+                                    Command="{Binding OpenPageCommand}" CommandParameter="{x:Static nav:AppPage.OutstandingReceivables}" />
+                            <TextBlock Style="{StaticResource SectionTitleText}" Text="Overdue payments" />
+                        </DockPanel>
+                        <TextBlock Style="{StaticResource MutedText}" FontSize="12" Text="Most overdue first. Click to open the ledger."
+                                   Margin="0,2,0,12" />
+                        <TextBlock Style="{StaticResource MutedText}" Text="Nothing is overdue."
+                                   Visibility="{Binding Position.HasNoOverdue, Converter={StaticResource BoolToVisibility}}" />
+                        <ItemsControl ItemsSource="{Binding Position.Overdue}" Focusable="False">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type vm:OverdueRow}">
+                                    <Button Style="{StaticResource QuickActionButton}" Height="Auto" Margin="0,0,0,8" Padding="0"
+                                            Command="{Binding DataContext.OpenOverdueCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}" FontWeight="Normal">
+                                        <DockPanel Margin="0,8">
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding AmountText}" FontWeight="SemiBold"
+                                                       VerticalAlignment="Center" Margin="8,0,0,0" />
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding CustomerName}" FontWeight="SemiBold" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock FontSize="12" Foreground="{StaticResource ErrorTextBrush}" TextTrimming="CharacterEllipsis">
+                                                    <Run Text="{Binding BillNumber, Mode=OneWay}" /> <Run Text="{Binding LateText, Mode=OneWay}" />
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </Button>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </StackPanel>
+                </Border>
+
                 <!-- Recent invoices -->
-                <Border Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Style="{StaticResource Card}" Padding="16">
+                <Border Grid.Row="2" Grid.Column="0" Style="{StaticResource Card}" Padding="16">
                     <StackPanel>
                         <DockPanel Margin="0,0,0,12">
                             <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="View all invoices"

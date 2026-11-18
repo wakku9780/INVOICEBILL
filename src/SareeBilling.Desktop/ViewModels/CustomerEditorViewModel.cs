@@ -21,6 +21,7 @@ public sealed class CustomerEditorViewModel : ObservableObject
     private string _pincode = string.Empty;
     private string _phone = string.Empty;
     private bool _isActive = true;
+    private string _creditDaysText = "30";
 
     public IReadOnlyList<IndianState> States => IndianStates.All;
 
@@ -78,6 +79,9 @@ public sealed class CustomerEditorViewModel : ObservableObject
     public string Phone { get => _phone; set => SetProperty(ref _phone, value); }
     public bool IsActive { get => _isActive; set => SetProperty(ref _isActive, value); }
 
+    /// <summary>Text so that a wrong entry can be shown and reported instead of silently ignored.</summary>
+    public string CreditDaysText { get => _creditDaysText; set => SetProperty(ref _creditDaysText, value); }
+
     public void Load(CustomerDto customer)
     {
         Id = customer.Id;
@@ -90,6 +94,7 @@ public sealed class CustomerEditorViewModel : ObservableObject
         Pincode = customer.Pincode ?? string.Empty;
         Phone = customer.Phone ?? string.Empty;
         IsActive = customer.IsActive;
+        CreditDaysText = customer.CreditDays.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
     public void Clear() => Load(new CustomerDto());
@@ -105,6 +110,8 @@ public sealed class CustomerEditorViewModel : ObservableObject
         City = City,
         Pincode = Pincode,
         Phone = Phone,
-        IsActive = IsActive
+        IsActive = IsActive,
+        // Anything that is not a whole number is sent as -1 so the service reports it.
+        CreditDays = int.TryParse(CreditDaysText.Trim(), System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var days) ? days : -1
     };
 }

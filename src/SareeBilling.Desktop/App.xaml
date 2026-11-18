@@ -34,6 +34,18 @@
             <DataTemplate DataType="{x:Type vm:BackupRestoreViewModel}">
                 <views:BackupRestoreView />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:ReceivePaymentViewModel}">
+                <views:ReceivePaymentView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:ReceiptsViewModel}">
+                <views:ReceiptsView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:CustomerLedgerViewModel}">
+                <views:CustomerLedgerView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:OutstandingReceivablesViewModel}">
+                <views:OutstandingReceivablesView />
+            </DataTemplate>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

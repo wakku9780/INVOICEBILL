@@ -51,8 +51,10 @@
                                         ElementStyle="{StaticResource GridCellText}" />
                     <DataGridTextColumn Header="State" Binding="{Binding State}" Width="1.3*" MinWidth="100"
                                         ElementStyle="{StaticResource GridCellText}" />
-                    <DataGridTextColumn Header="GSTIN" Binding="{Binding Gstin}" Width="SizeToCells" MinWidth="140"
+                    <DataGridTextColumn Header="GSTIN" Binding="{Binding Gstin}" Width="1.4*" MinWidth="120"
                                         ElementStyle="{StaticResource GridCellText}" />
+                    <DataGridTextColumn Header="Balance (₹)" Binding="{Binding BalanceText}" Width="140"
+                                        ElementStyle="{StaticResource AmountCellText}" />
                 </DataGrid.Columns>
             </DataGrid>
 
@@ -72,7 +74,68 @@
                            Margin="20,18,20,12" />
 
                 <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-                    <views:CustomerFormFields Margin="20,0,4,4" DataContext="{Binding Editor}" />
+                    <StackPanel>
+                        <views:CustomerFormFields Margin="20,0,4,4" DataContext="{Binding Editor}" />
+
+                        <!-- ===== Old bills from before this app (bill-wise opening balance) ===== -->
+                        <StackPanel Margin="20,4,16,12" Visibility="{Binding Editor.IsExisting, Converter={StaticResource BoolToVisibility}}">
+                            <DockPanel Margin="0,0,0,6">
+                                <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Receive payment"
+                                        Command="{Binding ReceivePaymentCommand}" />
+                                <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Ledger"
+                                        Command="{Binding OpenLedgerCommand}" />
+                                <TextBlock Style="{StaticResource SectionTitleText}" Text="Old bills (opening balance)" FontSize="15" />
+                            </DockPanel>
+                            <TextBlock Style="{StaticResource HintText}" TextWrapping="Wrap" Margin="0,0,0,8"
+                                       Text="Enter each bill still unpaid from before using this app (for example from Tally), or an advance the customer had paid." />
+
+                            <ItemsControl ItemsSource="{Binding OpeningBills}" Focusable="False">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate DataType="{x:Type vm:OpeningBillRowView}">
+                                        <DockPanel Margin="0,0,0,6">
+                                            <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Remove"
+                                                    Command="{Binding DataContext.RemoveOpeningBillCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                                    CommandParameter="{Binding}"
+                                                    Visibility="{Binding CanRemove, Converter={StaticResource BoolToVisibility}}" />
+                                            <TextBlock DockPanel.Dock="Right" Text="{Binding AmountText}" FontWeight="SemiBold" Margin="8,0" />
+                                            <StackPanel>
+                                                <TextBlock Text="{Binding Title}" TextTrimming="CharacterEllipsis" />
+                                                <TextBlock Style="{StaticResource HintText}" Margin="0">
+                                                    <Run Text="{Binding DateText, Mode=OneWay}" /> <Run Text="{Binding UsedText, Mode=OneWay}" />
+                                                </TextBlock>
+                                            </StackPanel>
+                                        </DockPanel>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <TextBlock Text="{Binding OpeningTotalText}" FontWeight="SemiBold" Margin="0,2,0,10" />
+
+                            <Border BorderBrush="{StaticResource BorderBrush}" BorderThickness="1" CornerRadius="4" Padding="10">
+                                <StackPanel>
+                                    <ComboBox ItemsSource="{Binding OpeningSides}" SelectedItem="{Binding NewOpeningSide}"
+                                              DisplayMemberPath="Label" Margin="0,0,0,8" AutomationProperties.Name="Old entry type" />
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="8" />
+                                            <ColumnDefinition Width="130" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBox Grid.Column="0" Text="{Binding NewOpeningNumber, UpdateSourceTrigger=PropertyChanged}"
+                                                 Tag="Bill no. (e.g. Tally 145)" MaxLength="40" AutomationProperties.Name="Old bill number" />
+                                        <DatePicker Grid.Column="2" SelectedDate="{Binding NewOpeningDate}" AutomationProperties.Name="Old bill date" />
+                                    </Grid>
+                                    <DockPanel Margin="0,8,0,0">
+                                        <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" Content="Add"
+                                                Command="{Binding AddOpeningBillCommand}" Margin="8,0,0,0" MinWidth="70" />
+                                        <TextBox Text="{Binding NewOpeningAmount, UpdateSourceTrigger=PropertyChanged}" Tag="Amount pending (₹)"
+                                                 TextAlignment="Right" AutomationProperties.Name="Old bill amount" />
+                                    </DockPanel>
+                                    <TextBlock Text="{Binding OpeningError}" Foreground="{StaticResource ErrorTextBrush}" TextWrapping="Wrap"
+                                               Margin="0,6,0,0" Visibility="{Binding OpeningError, Converter={StaticResource VisibleWhenNotEmpty}}" />
+                                </StackPanel>
+                            </Border>
+                        </StackPanel>
+                    </StackPanel>
                 </ScrollViewer>
 
                 <StackPanel Grid.Row="2" Margin="20,8,20,18">

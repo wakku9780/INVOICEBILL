@@ -138,13 +138,18 @@ internal sealed class InvoiceRepository : IInvoiceRepository
     public async Task MarkCancelledAsync(int id, string reason, DateTime cancelledAtUtc, CancellationToken cancellationToken = default)
     {
         await using var db = await _contextFactory.CreateDbContextAsync(cancellationToken);
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         var invoice = await db.Invoices.FindAsync([id], cancellationToken)
                       ?? throw new InvalidOperationException("This invoice no longer exists.");
+
+        // Money already received against it stays with the customer as advance.
+        await db.BillAllocations.Where(a => a.InvoiceId == id).ExecuteDeleteAsync(cancellationToken);
 
         invoice.Status = InvoiceStatus.Cancelled;
         invoice.CancellationReason = reason;
         invoice.CancelledAtUtc = cancelledAtUtc;
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
     /// <summary>

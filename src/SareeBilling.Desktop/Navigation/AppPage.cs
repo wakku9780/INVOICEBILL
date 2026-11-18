@@ -8,5 +8,9 @@ public enum AppPage
     Customers,
     InvoiceHistory,
     CompanySettings,
-    BackupRestore
+    BackupRestore,
+    ReceivePayment,
+    Receipts,
+    CustomerLedger,
+    OutstandingReceivables
 }

@@ -118,6 +118,7 @@ public partial class App : System.Windows.Application
         builder.Services.AddSingleton(errorLog);
         builder.Services.AddSingleton<IDialogService, DialogService>();
         builder.Services.AddSingleton<INavigationService, NavigationService>();
+        builder.Services.AddSingleton<IDocumentActions, DocumentActions>();
         builder.Services.AddSingleton<IInvoiceActions, InvoiceActions>();
         builder.Services.AddSingleton<IUpdateCoordinator, UpdateCoordinator>();
 
@@ -130,6 +131,10 @@ public partial class App : System.Windows.Application
         builder.Services.AddTransient<CreateInvoiceViewModel>();
         builder.Services.AddTransient<InvoiceHistoryViewModel>();
         builder.Services.AddTransient<BackupRestoreViewModel>();
+        builder.Services.AddTransient<ReceivePaymentViewModel>();
+        builder.Services.AddTransient<ReceiptsViewModel>();
+        builder.Services.AddTransient<CustomerLedgerViewModel>();
+        builder.Services.AddTransient<OutstandingReceivablesViewModel>();
         builder.Services.AddTransient<NewCustomerDialogViewModel>();
 
         return builder.Build();

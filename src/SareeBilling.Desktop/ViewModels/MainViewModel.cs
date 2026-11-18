@@ -52,7 +52,7 @@ public sealed class MainViewModel : ObservableObject
     public ICommand OpenPageCommand { get; }
 
     /// <summary>
-    /// The sidebar. Only screens that exist are listed; new groups (PURCHASE, ACCOUNTS, REPORTS)
+    /// The sidebar. Only screens that exist are listed; new groups (PURCHASE)
     /// are added when their screens are built.
     /// </summary>
     public IReadOnlyList<NavigationGroup> NavigationGroups { get; } =
@@ -66,6 +66,16 @@ public sealed class MainViewModel : ObservableObject
             new(AppPage.CreateInvoice, "Sales Invoice", "", "F8"),
             new(AppPage.InvoiceHistory, "Invoice History", "", "Ctrl+H"),
             new(AppPage.Customers, "Customers", "")
+        ]),
+        new("ACCOUNTS",
+        [
+            new(AppPage.ReceivePayment, "Receive Payment", "\uE8C7", "F6"),
+            new(AppPage.Receipts, "Receipts", "\uE8A5"),
+            new(AppPage.CustomerLedger, "Customer Ledger", "\uE82D")
+        ]),
+        new("REPORTS",
+        [
+            new(AppPage.OutstandingReceivables, "Outstanding Receivables", "\uE9D2")
         ]),
         new("SETTINGS",
         [

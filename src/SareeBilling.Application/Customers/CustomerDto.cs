@@ -18,4 +18,7 @@ public sealed record CustomerDto
     public string? Gstin { get; init; }
     public string? Phone { get; init; }
     public bool IsActive { get; init; } = true;
+
+    /// <summary>Days allowed to pay; 0 = payment due on the invoice date.</summary>
+    public int CreditDays { get; init; } = 30;
 }

@@ -27,19 +27,23 @@ public sealed class NavigationService : INavigationService
 
     public event EventHandler? Navigated;
 
-    public bool NavigateTo(AppPage page)
-    {
-        if (CurrentPageKey == page)
-        {
-            return true;
-        }
+    public bool NavigateTo(AppPage page) => CurrentPageKey == page || Open(page, null);
 
+    public bool NavigateTo(AppPage page, object parameter) => Open(page, parameter);
+
+    private bool Open(AppPage page, object? parameter)
+    {
         if (CurrentPage is not null && !CurrentPage.ConfirmLeave())
         {
             return false;
         }
 
         var viewModel = CreatePage(page);
+        if (parameter is not null)
+        {
+            viewModel.ReceiveParameter(parameter);
+        }
+
         CurrentPage = viewModel;
         CurrentPageKey = page;
         Navigated?.Invoke(this, EventArgs.Empty);
@@ -69,6 +73,10 @@ public sealed class NavigationService : INavigationService
         AppPage.InvoiceHistory => _services.GetRequiredService<InvoiceHistoryViewModel>(),
         AppPage.CompanySettings => _services.GetRequiredService<CompanySettingsViewModel>(),
         AppPage.BackupRestore => _services.GetRequiredService<BackupRestoreViewModel>(),
+        AppPage.ReceivePayment => _services.GetRequiredService<ReceivePaymentViewModel>(),
+        AppPage.Receipts => _services.GetRequiredService<ReceiptsViewModel>(),
+        AppPage.CustomerLedger => _services.GetRequiredService<CustomerLedgerViewModel>(),
+        AppPage.OutstandingReceivables => _services.GetRequiredService<OutstandingReceivablesViewModel>(),
         _ => throw new ArgumentOutOfRangeException(nameof(page), page, null)
     };
 }

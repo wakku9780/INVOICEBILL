@@ -34,7 +34,24 @@ public sealed record TopCustomerRow(string Name, string SalesText, string Invoic
 
 public sealed record RecentInvoiceRow(int InvoiceId, string InvoiceNumber, string DateText, string BuyerName, string AmountText, bool IsCancelled);
 
-public sealed record TrendBar(string MonthLabel, string AmountText, double BarHeight, string ToolTip);
+public sealed record TrendBar(string MonthLabel, string AmountText, double BarHeight, double CollectionHeight, string ToolTip);
+
+public sealed record OverdueRow(int CustomerId, string CustomerName, string BillNumber, string LateText, string AmountText);
+
+/// <summary>Collections for the period and what customers owe today, ready to show.</summary>
+public sealed record MoneyPosition(
+    string CollectionsText,
+    string CollectionsNote,
+    string ReceivablesText,
+    string ReceivablesNote,
+    string OverdueText,
+    string OverdueNote,
+    string AdvanceText,
+    string AsOfText,
+    IReadOnlyList<OverdueRow> Overdue)
+{
+    public bool HasNoOverdue => Overdue.Count == 0;
+}
 
 public sealed class DashboardViewModel : PageViewModel
 {
@@ -69,6 +86,7 @@ public sealed class DashboardViewModel : PageViewModel
     private IReadOnlyList<RecentInvoiceRow> _recentInvoices = [];
     private IReadOnlyList<TrendBar> _trend = [];
     private string _trendCaption = string.Empty;
+    private MoneyPosition? _money;
 
     public DashboardViewModel(
         INavigationService navigation,
@@ -103,6 +121,7 @@ public sealed class DashboardViewModel : PageViewModel
         SelectPeriodCommand = new AsyncRelayCommand<PeriodOption>(SelectPeriodAsync);
         ApplyCustomRangeCommand = new AsyncRelayCommand(LoadSummaryAsync);
         OpenInvoiceCommand = new AsyncRelayCommand<RecentInvoiceRow>(row => _invoiceActions.PreviewAsync(row.InvoiceId));
+        OpenOverdueCommand = new RelayCommand<OverdueRow>(row => navigation.NavigateTo(AppPage.CustomerLedger, row.CustomerId));
     }
 
     public override string Title => "Dashboard";
@@ -117,6 +136,10 @@ public sealed class DashboardViewModel : PageViewModel
     public ICommand ApplyCustomRangeCommand { get; }
 
     public ICommand OpenInvoiceCommand { get; }
+
+    public ICommand OpenOverdueCommand { get; }
+
+    public MoneyPosition? Position { get => _money; private set => SetProperty(ref _money, value); }
 
     public IReadOnlyList<PeriodOption> Periods { get; }
 
@@ -285,24 +308,37 @@ public sealed class DashboardViewModel : PageViewModel
                 IndianFormat.Amount(r.GrandTotal), r.IsCancelled))
             .ToList();
 
-        var topMonth = summary.Trend.Count == 0 ? 0m : summary.Trend.Max(m => m.Sales);
+        var topMonth = summary.Trend.Count == 0 ? 0m : summary.Trend.Max(m => Math.Max(m.Sales, m.Collections));
+        double Height(decimal value) =>
+            value <= 0 || topMonth == 0 ? 0 : Math.Max((double)(value / topMonth) * TrendBarMaxHeight, 3); // always at least a sliver
         Trend = summary.Trend
-            .Select(m =>
-            {
-                var label = m.Month.ToString("MMM", CultureInfo.InvariantCulture);
-                var height = topMonth == 0 ? 0 : (double)(m.Sales / topMonth) * TrendBarMaxHeight;
-                return new TrendBar(
-                    label,
-                    m.Sales > 0 ? IndianFormat.Amount(m.Sales) : string.Empty,
-                    // A month with sales always shows at least a sliver.
-                    m.Sales > 0 ? Math.Max(height, 3) : 0,
-                    $"{m.Month.ToString("MMMM yyyy", CultureInfo.InvariantCulture)}: {IndianFormat.Amount(m.Sales)} ({Plural(m.InvoiceCount, "invoice")})");
-            })
+            .Select(m => new TrendBar(
+                m.Month.ToString("MMM", CultureInfo.InvariantCulture),
+                m.Sales > 0 ? IndianFormat.Amount(m.Sales) : string.Empty,
+                Height(m.Sales),
+                Height(m.Collections),
+                $"{m.Month.ToString("MMMM yyyy", CultureInfo.InvariantCulture)}\nSales: {IndianFormat.Amount(m.Sales)} " +
+                $"({Plural(m.InvoiceCount, "invoice")})\nCollected: {IndianFormat.Amount(m.Collections)}"))
             .ToList();
         TrendCaption = summary.Trend.Count == 0
             ? string.Empty
-            : $"Sales by month, {summary.Trend[0].Month.ToString("MMM yyyy", CultureInfo.InvariantCulture)} to " +
-              $"{summary.Trend[^1].Month.ToString("MMM yyyy", CultureInfo.InvariantCulture)} (cancelled invoices not included)";
+            : $"Sales and money collected by month, {summary.Trend[0].Month.ToString("MMM yyyy", CultureInfo.InvariantCulture)} to " +
+              $"{summary.Trend[^1].Month.ToString("MMM yyyy", CultureInfo.InvariantCulture)} (cancelled documents not included)";
+
+        var r = summary.Receivables;
+        Position = new MoneyPosition(
+            IndianFormat.Amount(summary.Collections),
+            Plural(summary.ReceiptCount, "receipt"),
+            IndianFormat.Amount(r.Pending),
+            r.CustomersOwing == 1 ? "1 customer owes" : $"{r.CustomersOwing} customers owe",
+            IndianFormat.Amount(r.Overdue),
+            r.OverdueBillCount == 0 ? "Nothing overdue" : Plural(r.OverdueBillCount, "bill") + " past due date",
+            IndianFormat.Amount(r.Advance),
+            "As of today, " + FormatDate(r.AsOf),
+            r.MostOverdue.Select(b => new OverdueRow(
+                b.CustomerId, b.CustomerName, b.BillNumber,
+                $"due {FormatDate(b.DueDate)} · {b.DaysOverdue} {(b.DaysOverdue == 1 ? "day" : "days")} late",
+                IndianFormat.Amount(b.Pending))).ToList());
     }
 
     private void UpdateBackupReminder()

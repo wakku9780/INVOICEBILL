@@ -17,6 +17,62 @@ namespace SareeBilling.Infrastructure.Persistence.Migrations
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.34");
 
+            modelBuilder.Entity("SareeBilling.Domain.Entities.BillAllocation", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("AllocatedOn")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("InvoiceId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("OpeningBillId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("OpeningCreditId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int?>("ReceiptId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("InvoiceId");
+
+                    b.HasIndex("OpeningBillId");
+
+                    b.HasIndex("OpeningCreditId");
+
+                    b.HasIndex("ReceiptId");
+
+                    b.ToTable("BillAllocations", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_BillAllocations_Amount", "CAST(\"Amount\" AS REAL) > 0");
+
+                            t.HasCheckConstraint("CK_BillAllocations_OneSource", "(\"ReceiptId\" IS NOT NULL) + (\"OpeningCreditId\" IS NOT NULL) = 1");
+
+                            t.HasCheckConstraint("CK_BillAllocations_OneTarget", "(\"InvoiceId\" IS NOT NULL) + (\"OpeningBillId\" IS NOT NULL) = 1");
+                        });
+                });
+
             modelBuilder.Entity("SareeBilling.Domain.Entities.CompanyProfile", b =>
                 {
                     b.Property<int>("Id")
@@ -128,6 +184,9 @@ namespace SareeBilling.Infrastructure.Persistence.Migrations
 
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("TEXT");
+
+                    b.Property<int>("CreditDays")
+                        .HasColumnType("INTEGER");
 
                     b.Property<string>("Gstin")
                         .HasMaxLength(15)
@@ -251,6 +310,9 @@ namespace SareeBilling.Infrastructure.Persistence.Migrations
 
                     b.Property<string>("DispatchedThrough")
                         .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("DueDate")
                         .HasColumnType("TEXT");
 
                     b.Property<string>("FinancialYear")
@@ -492,6 +554,181 @@ namespace SareeBilling.Infrastructure.Persistence.Migrations
                         });
                 });
 
+            modelBuilder.Entity("SareeBilling.Domain.Entities.OpeningBill", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("BillDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BillNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateOnly>("DueDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Side")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.ToTable("OpeningBills", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_OpeningBills_Amount", "CAST(\"Amount\" AS REAL) > 0");
+
+                            t.HasCheckConstraint("CK_OpeningBills_Side", "\"Side\" IN (1, 2)");
+                        });
+                });
+
+            modelBuilder.Entity("SareeBilling.Domain.Entities.Receipt", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("Amount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("CancelledAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("CustomerName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Mode")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Narration")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("ReceiptDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("ReceiptNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Reference")
+                        .HasMaxLength(100)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SequenceNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("ReceiptDate");
+
+                    b.HasIndex("ReceiptNumber")
+                        .IsUnique();
+
+                    b.ToTable("Receipts", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_Receipts_Amount", "CAST(\"Amount\" AS REAL) > 0");
+
+                            t.HasCheckConstraint("CK_Receipts_Mode", "\"Mode\" IN (1, 2, 3)");
+
+                            t.HasCheckConstraint("CK_Receipts_SequenceNumber", "\"SequenceNumber\" > 0");
+
+                            t.HasCheckConstraint("CK_Receipts_Status", "\"Status\" IN (1, 2)");
+                        });
+                });
+
+            modelBuilder.Entity("SareeBilling.Domain.Entities.VoucherCounter", b =>
+                {
+                    b.Property<int>("VoucherType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("LastNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.HasKey("VoucherType");
+
+                    b.ToTable("VoucherCounters", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_VoucherCounters_LastNumber", "\"LastNumber\" >= 0");
+                        });
+                });
+
+            modelBuilder.Entity("SareeBilling.Domain.Entities.BillAllocation", b =>
+                {
+                    b.HasOne("SareeBilling.Domain.Entities.Customer", null)
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SareeBilling.Domain.Entities.Invoice", "Invoice")
+                        .WithMany()
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SareeBilling.Domain.Entities.OpeningBill", "OpeningBill")
+                        .WithMany()
+                        .HasForeignKey("OpeningBillId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SareeBilling.Domain.Entities.OpeningBill", "OpeningCredit")
+                        .WithMany()
+                        .HasForeignKey("OpeningCreditId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("SareeBilling.Domain.Entities.Receipt", "Receipt")
+                        .WithMany()
+                        .HasForeignKey("ReceiptId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("Invoice");
+
+                    b.Navigation("OpeningBill");
+
+                    b.Navigation("OpeningCredit");
+
+                    b.Navigation("Receipt");
+                });
+
             modelBuilder.Entity("SareeBilling.Domain.Entities.Invoice", b =>
                 {
                     b.HasOne("SareeBilling.Domain.Entities.Customer", "Customer")
@@ -514,9 +751,33 @@ namespace SareeBilling.Infrastructure.Persistence.Migrations
                     b.Navigation("Invoice");
                 });
 
+            modelBuilder.Entity("SareeBilling.Domain.Entities.OpeningBill", b =>
+                {
+                    b.HasOne("SareeBilling.Domain.Entities.Customer", "Customer")
+                        .WithMany("OpeningBills")
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("SareeBilling.Domain.Entities.Receipt", b =>
+                {
+                    b.HasOne("SareeBilling.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+                });
+
             modelBuilder.Entity("SareeBilling.Domain.Entities.Customer", b =>
                 {
                     b.Navigation("Invoices");
+
+                    b.Navigation("OpeningBills");
                 });
 
             modelBuilder.Entity("SareeBilling.Domain.Entities.Invoice", b =>

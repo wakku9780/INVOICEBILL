@@ -56,7 +56,9 @@ internal sealed class CustomerRepository : ICustomerRepository
     public async Task<bool> HasInvoicesAsync(int customerId, CancellationToken cancellationToken = default)
     {
         await using var db = await _contextFactory.CreateDbContextAsync(cancellationToken);
-        return await db.Invoices.AnyAsync(i => i.CustomerId == customerId, cancellationToken);
+        return await db.Invoices.AnyAsync(i => i.CustomerId == customerId, cancellationToken)
+               || await db.Receipts.AnyAsync(r => r.CustomerId == customerId, cancellationToken)
+               || await db.OpeningBills.AnyAsync(b => b.CustomerId == customerId, cancellationToken);
     }
 
     public async Task<int> AddAsync(Customer customer, CancellationToken cancellationToken = default)

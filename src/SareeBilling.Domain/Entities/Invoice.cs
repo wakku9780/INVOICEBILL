@@ -23,6 +23,9 @@ public class Invoice : AuditableEntity
 
     public DateOnly InvoiceDate { get; set; }
 
+    /// <summary>Invoice date + the customer's credit days when the invoice was saved.</summary>
+    public DateOnly DueDate { get; set; }
+
     public InvoiceStatus Status { get; set; } = InvoiceStatus.Final;
     public DateTime? CancelledAtUtc { get; set; }
     public string? CancellationReason { get; set; }
