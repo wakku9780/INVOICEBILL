@@ -1,24 +1,14 @@
-using System.Diagnostics;
 using System.IO;
-using System.Printing;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Documents;
 using System.Windows.Input;
-using System.Windows.Markup;
 using System.Windows.Media.Imaging;
-using Microsoft.Win32;
 using SareeBilling.Application.Common;
 using SareeBilling.Application.Invoices;
-using SareeBilling.Desktop.ViewModels;
-using SareeBilling.Desktop.Views;
+using SareeBilling.Application.Receivables;
+using SareeBilling.Domain.Common;
 
 namespace SareeBilling.Desktop.Services;
 
-/// <summary>
-/// The things staff do with a saved invoice — preview, print, save as PDF, cancel —
-/// in one place, so the Create Invoice and Invoice History screens behave identically.
-/// </summary>
+/// <summary>Invoice actions shared by the invoice screens: preview, print, save as PDF, cancel.</summary>
 public interface IInvoiceActions
 {
     Task PreviewAsync(int invoiceId);
@@ -27,7 +17,7 @@ public interface IInvoiceActions
 
     Task SavePdfAsync(int invoiceId);
 
-    /// <returns>True if the invoice was cancelled.</returns>
+    /// <summary>Asks for a reason and cancels the invoice. Returns true when it was cancelled.</summary>
     Task<bool> CancelAsync(int invoiceId, string invoiceNumber);
 
     void Print(InvoicePrintout printout);
@@ -37,30 +27,27 @@ public interface IInvoiceActions
 
 public sealed class InvoiceActions : IInvoiceActions
 {
-    /// <summary>A4 in WPF units (1/96 inch).</summary>
-    private static readonly Size A4 = new(8.27 * 96, 11.69 * 96);
-
     private readonly IInvoicePrintService _printing;
     private readonly IInvoiceService _invoices;
+    private readonly IReceiptService _receipts;
+    private readonly IDocumentActions _documents;
     private readonly IDialogService _dialogs;
-    private string? _lastSaveFolder;
 
-    public InvoiceActions(IInvoicePrintService printing, IInvoiceService invoices, IDialogService dialogs)
+    public InvoiceActions(
+        IInvoicePrintService printing,
+        IInvoiceService invoices,
+        IReceiptService receipts,
+        IDocumentActions documents,
+        IDialogService dialogs)
     {
         _printing = printing;
         _invoices = invoices;
+        _receipts = receipts;
+        _documents = documents;
         _dialogs = dialogs;
     }
 
-    public async Task PreviewAsync(int invoiceId)
-    {
-        var printout = await CreatePrintoutAsync(invoiceId);
-        var window = new InvoicePreviewWindow(new InvoicePreviewViewModel(printout, this))
-        {
-            Owner = System.Windows.Application.Current.MainWindow
-        };
-        window.ShowDialog();
-    }
+    public async Task PreviewAsync(int invoiceId) => _documents.Preview(ToDocument(await CreatePrintoutAsync(invoiceId)));
 
     public async Task PrintAsync(int invoiceId) => Print(await CreatePrintoutAsync(invoiceId));
 
@@ -68,10 +55,17 @@ public sealed class InvoiceActions : IInvoiceActions
 
     public async Task<bool> CancelAsync(int invoiceId, string invoiceNumber)
     {
+        // Money already received against the invoice is not lost: it becomes the customer's advance.
+        var received = await _receipts.GetSettledAmountForInvoiceAsync(invoiceId);
+        var paymentNote = received > 0
+            ? $"\n\n₹ {IndianFormat.Amount(received)} has already been received against this invoice. " +
+              "After cancelling, that money stays with the customer as an advance, ready to adjust against another invoice."
+            : string.Empty;
+
         var reason = _dialogs.PromptForText(
             "Cancel invoice",
             $"Why is invoice {invoiceNumber} being cancelled?\n\n" +
-            "It will stay in Invoice History marked CANCELLED, and its number will not be used again.",
+            "It will stay in Invoice History marked CANCELLED, and its number will not be used again." + paymentNote,
             "Cancel invoice");
 
         if (reason is null)
@@ -91,64 +85,9 @@ public sealed class InvoiceActions : IInvoiceActions
         }
     }
 
-    public void Print(InvoicePrintout printout)
-    {
-        var dialog = new PrintDialog { UserPageRangeEnabled = false };
-        dialog.PrintTicket.PageMediaSize = new PageMediaSize(PageMediaSizeName.ISOA4);
-        dialog.PrintTicket.PageOrientation = PageOrientation.Portrait;
+    public void Print(InvoicePrintout printout) => _documents.Print(ToDocument(printout));
 
-        if (dialog.ShowDialog() != true)
-        {
-            return;
-        }
-
-        var document = new FixedDocument();
-        document.DocumentPaginator.PageSize = A4;
-
-        foreach (var png in printout.PageImages)
-        {
-            var page = new FixedPage { Width = A4.Width, Height = A4.Height };
-            page.Children.Add(new System.Windows.Controls.Image
-            {
-                Source = LoadImage(png, decodeWidth: null),
-                Width = A4.Width,
-                Height = A4.Height
-            });
-
-            var content = new PageContent();
-            ((IAddChild)content).AddChild(page);
-            document.Pages.Add(content);
-        }
-
-        dialog.PrintDocument(document.DocumentPaginator, $"Invoice {printout.InvoiceNumber}");
-    }
-
-    public void SavePdf(InvoicePrintout printout)
-    {
-        var folder = _lastSaveFolder ?? DefaultSaveFolder();
-        var dialog = new SaveFileDialog
-        {
-            Title = "Save invoice as PDF",
-            Filter = "PDF document (*.pdf)|*.pdf",
-            FileName = printout.SuggestedFileName,
-            InitialDirectory = folder,
-            AddExtension = true,
-            OverwritePrompt = true
-        };
-
-        if (dialog.ShowDialog(System.Windows.Application.Current.MainWindow) != true)
-        {
-            return;
-        }
-
-        File.WriteAllBytes(dialog.FileName, printout.Pdf);
-        _lastSaveFolder = Path.GetDirectoryName(dialog.FileName);
-
-        if (_dialogs.Confirm($"Saved:\n{dialog.FileName}\n\nOpen the PDF now?", "PDF saved"))
-        {
-            Process.Start(new ProcessStartInfo(dialog.FileName) { UseShellExecute = true });
-        }
-    }
+    public void SavePdf(InvoicePrintout printout) => _documents.SavePdf(ToDocument(printout));
 
     /// <summary>Decodes a page image. Preview uses a smaller decode width to save memory.</summary>
     public static BitmapImage LoadImage(byte[] png, int? decodeWidth)
@@ -171,6 +110,9 @@ public sealed class InvoiceActions : IInvoiceActions
         return image;
     }
 
+    private static DocumentPrintout ToDocument(InvoicePrintout p) =>
+        new($"Invoice {p.InvoiceNumber} - {p.BuyerName}", p.IsCancelled, p.SuggestedFileName, p.Pdf, p.PageImages);
+
     private async Task<InvoicePrintout> CreatePrintoutAsync(int invoiceId)
     {
         Mouse.OverrideCursor = Cursors.Wait;
@@ -182,13 +124,5 @@ public sealed class InvoiceActions : IInvoiceActions
         {
             Mouse.OverrideCursor = null;
         }
-    }
-
-    private static string DefaultSaveFolder()
-    {
-        var folder = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyDocuments), "SareeBilling Invoices");
-        Directory.CreateDirectory(folder);
-        return folder;
     }
 }

@@ -178,6 +178,7 @@ public sealed class InvoiceService : IInvoiceService
         {
             FinancialYear = FinancialYear.For(request.InvoiceDate),
             InvoiceDate = request.InvoiceDate,
+            DueDate = request.InvoiceDate.AddDays(customer.CreditDays),
             Status = InvoiceStatus.Final,
             CustomerId = customer.Id,
 

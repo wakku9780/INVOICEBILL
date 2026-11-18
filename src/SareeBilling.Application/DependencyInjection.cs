@@ -1,7 +1,9 @@
 using Microsoft.Extensions.DependencyInjection;
 using SareeBilling.Application.CompanyProfiles;
 using SareeBilling.Application.Customers;
+using SareeBilling.Application.Dashboard;
 using SareeBilling.Application.Invoices;
+using SareeBilling.Application.Receivables;
 
 namespace SareeBilling.Application;
 
@@ -14,6 +16,12 @@ public static class DependencyInjection
         services.AddTransient<IInvoiceService, InvoiceService>();
         services.AddTransient<IInvoiceNumberingService, InvoiceNumberingService>();
         services.AddTransient<IInvoicePrintService, InvoicePrintService>();
+        services.AddTransient<IDashboardService, DashboardService>();
+        services.AddTransient<IReceiptService, ReceiptService>();
+        services.AddTransient<IOpeningBillService, OpeningBillService>();
+        services.AddTransient<ICustomerLedgerService, CustomerLedgerService>();
+        services.AddTransient<IOutstandingReportService, OutstandingReportService>();
+        services.AddTransient<IAccountsPrintService, AccountsPrintService>();
         return services;
     }
 }

@@ -1,33 +1,33 @@
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
-using SareeBilling.Application.Invoices;
+using SareeBilling.Application.Receivables;
 using SareeBilling.Desktop.Mvvm;
 using SareeBilling.Desktop.Services;
 
 namespace SareeBilling.Desktop.ViewModels;
 
-/// <summary>Shows the invoice exactly as it will print, with Print and Save as PDF.</summary>
+/// <summary>Preview window for any printable document (invoice, receipt, statement, report).</summary>
 public sealed class InvoicePreviewViewModel : ObservableObject
 {
     private const int PreviewDecodeWidth = 1400;
 
-    public InvoicePreviewViewModel(InvoicePrintout printout, IInvoiceActions actions)
+    public InvoicePreviewViewModel(DocumentPrintout document, IDocumentActions actions)
     {
-        Printout = printout;
-        Pages = printout.PageImages.Select(p => InvoiceActions.LoadImage(p, PreviewDecodeWidth)).ToList();
-        PrintCommand = new RelayCommand(() => actions.Print(printout));
-        SavePdfCommand = new RelayCommand(() => actions.SavePdf(printout));
+        Document = document;
+        Pages = document.PageImages.Select(p => InvoiceActions.LoadImage(p, PreviewDecodeWidth)).ToList();
+        PrintCommand = new RelayCommand(() => actions.Print(document));
+        SavePdfCommand = new RelayCommand(() => actions.SavePdf(document));
     }
 
-    public InvoicePrintout Printout { get; }
+    public DocumentPrintout Document { get; }
 
     public IReadOnlyList<BitmapImage> Pages { get; }
 
-    public string WindowTitle => $"Invoice {Printout.InvoiceNumber} - {Printout.BuyerName}";
+    public string WindowTitle => Document.Title;
 
     public string PageCountText => Pages.Count == 1 ? "1 page" : $"{Pages.Count} pages";
 
-    public bool IsCancelled => Printout.IsCancelled;
+    public bool IsCancelled => Document.IsCancelled;
 
     public ICommand PrintCommand { get; }
 

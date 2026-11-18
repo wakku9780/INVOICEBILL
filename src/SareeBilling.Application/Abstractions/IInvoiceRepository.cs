@@ -26,4 +26,7 @@ public interface IInvoiceRepository
         Invoices.InvoiceSearchCriteria criteria, int maxResults, CancellationToken cancellationToken = default);
 
     Task MarkCancelledAsync(int id, string reason, DateTime cancelledAtUtc, CancellationToken cancellationToken = default);
+
+    /// <summary>Every invoice dated <paramref name="from"/> to <paramref name="to"/> (inclusive), cancelled ones too.</summary>
+    Task<IReadOnlyList<Dashboard.SalesRow>> ListSalesAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken = default);
 }

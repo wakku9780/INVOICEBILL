@@ -33,6 +33,8 @@ public interface ICustomerService
 
 public sealed class CustomerService : ICustomerService
 {
+    public const int MaxCreditDays = 365;
+
     private readonly ICustomerRepository _repository;
 
     public CustomerService(ICustomerRepository repository)
@@ -116,7 +118,8 @@ public sealed class CustomerService : ICustomerService
             State = state?.Name ?? string.Empty,
             Gstin = gstin.Length == 0 ? null : gstin,
             Phone = InputRules.Clean(dto.Phone),
-            IsActive = dto.IsActive
+            IsActive = dto.IsActive,
+            CreditDays = dto.CreditDays
         };
     }
 
@@ -133,6 +136,11 @@ public sealed class CustomerService : ICustomerService
         InputRules.Gstin(errors, c.Gstin, state);
         InputRules.MaxLength(errors, c.Phone, "Phone", 60);
 
+        if (c.CreditDays is < 0 or > MaxCreditDays)
+        {
+            errors.Add($"Credit days must be between 0 and {MaxCreditDays}.");
+        }
+
         return errors;
     }
 
@@ -148,6 +156,7 @@ public sealed class CustomerService : ICustomerService
         StateCode = c.StateCode,
         Gstin = c.Gstin,
         Phone = c.Phone,
-        IsActive = c.IsActive
+        IsActive = c.IsActive,
+        CreditDays = c.CreditDays
     };
 }

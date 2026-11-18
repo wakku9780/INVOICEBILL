@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SareeBilling.Application.Abstractions;
+using SareeBilling.Application.Dashboard;
 using SareeBilling.Application.Invoices;
 using SareeBilling.Domain.Common;
 using SareeBilling.Domain.Entities;
@@ -121,16 +122,34 @@ internal sealed class InvoiceRepository : IInvoiceRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<SalesRow>> ListSalesAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken = default)
+    {
+        await using var db = await _contextFactory.CreateDbContextAsync(cancellationToken);
+
+        // Amounts are stored as text, so they are added up in memory by the dashboard service.
+        return await db.Invoices.AsNoTracking()
+            .Where(i => i.InvoiceDate >= from && i.InvoiceDate <= to)
+            .Select(i => new SalesRow(
+                i.Id, i.InvoiceNumber, i.SequenceNumber, i.InvoiceDate, i.CustomerId, i.BuyerName,
+                i.TaxableTotal, i.TotalTax, i.GrandTotal, i.Status))
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task MarkCancelledAsync(int id, string reason, DateTime cancelledAtUtc, CancellationToken cancellationToken = default)
     {
         await using var db = await _contextFactory.CreateDbContextAsync(cancellationToken);
+        await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         var invoice = await db.Invoices.FindAsync([id], cancellationToken)
                       ?? throw new InvalidOperationException("This invoice no longer exists.");
+
+        // Money already received against it stays with the customer as advance.
+        await db.BillAllocations.Where(a => a.InvoiceId == id).ExecuteDeleteAsync(cancellationToken);
 
         invoice.Status = InvoiceStatus.Cancelled;
         invoice.CancellationReason = reason;
         invoice.CancelledAtUtc = cancelledAtUtc;
         await db.SaveChangesAsync(cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
     }
 
     /// <summary>

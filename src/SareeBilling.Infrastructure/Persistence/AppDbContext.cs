@@ -19,6 +19,10 @@ public sealed class AppDbContext : DbContext
     public DbSet<Invoice> Invoices => Set<Invoice>();
     public DbSet<InvoiceItem> InvoiceItems => Set<InvoiceItem>();
     public DbSet<InvoiceCounter> InvoiceCounters => Set<InvoiceCounter>();
+    public DbSet<OpeningBill> OpeningBills => Set<OpeningBill>();
+    public DbSet<Receipt> Receipts => Set<Receipt>();
+    public DbSet<BillAllocation> BillAllocations => Set<BillAllocation>();
+    public DbSet<VoucherCounter> VoucherCounters => Set<VoucherCounter>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

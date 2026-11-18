@@ -25,5 +25,10 @@ public class Customer : AuditableEntity
     /// </summary>
     public bool IsActive { get; set; } = true;
 
+    /// <summary>Days the customer is given to pay; an invoice is overdue after invoice date + these days.</summary>
+    public int CreditDays { get; set; } = 30;
+
+    public ICollection<OpeningBill> OpeningBills { get; set; } = new List<OpeningBill>();
+
     public ICollection<Invoice> Invoices { get; set; } = new List<Invoice>();
 }

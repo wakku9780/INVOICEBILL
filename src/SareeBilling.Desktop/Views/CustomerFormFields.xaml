@@ -61,6 +61,14 @@
             <TextBox Text="{Binding Phone, UpdateSourceTrigger=PropertyChanged}" />
         </StackPanel>
 
+        <StackPanel Style="{StaticResource Field}">
+            <TextBlock Style="{StaticResource FieldLabel}" Text="Credit days" />
+            <TextBox Text="{Binding CreditDaysText, UpdateSourceTrigger=PropertyChanged}" Width="120" HorizontalAlignment="Left"
+                     MaxLength="3" AutomationProperties.Name="Credit days" />
+            <TextBlock Style="{StaticResource HintText}"
+                       Text="Days allowed to pay. A new invoice becomes overdue after its date plus these days (0 = pay at once)." />
+        </StackPanel>
+
         <CheckBox Content="Active (shown when creating invoices)" IsChecked="{Binding IsActive}"
                   Margin="0,0,0,14"
                   Visibility="{Binding IsExisting, Converter={StaticResource BoolToVisibility}}" />

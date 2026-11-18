@@ -10,6 +10,11 @@ public abstract class PageViewModel : ObservableObject
     /// <summary>Called once when the page is opened; load data from the database here.</summary>
     public virtual Task InitializeAsync() => Task.CompletedTask;
 
+    /// <summary>A value passed by the page that opened this one (e.g. a customer Id). Called before <see cref="InitializeAsync"/>.</summary>
+    public virtual void ReceiveParameter(object parameter)
+    {
+    }
+
     /// <summary>
     /// Called before leaving the page. Return false to stay (e.g. after the user
     /// chose not to discard unsaved work).

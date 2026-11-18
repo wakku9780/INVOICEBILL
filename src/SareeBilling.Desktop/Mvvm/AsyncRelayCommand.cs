@@ -47,3 +47,46 @@ public sealed class AsyncRelayCommand : ICommand
         }
     }
 }
+
+/// <summary>
+/// <see cref="AsyncRelayCommand"/> with a parameter (e.g. the row a button belongs to).
+/// Disabled while running, so a double-click runs it only once.
+/// </summary>
+public sealed class AsyncRelayCommand<T> : ICommand
+{
+    private readonly Func<T, Task> _execute;
+    private bool _isRunning;
+
+    public AsyncRelayCommand(Func<T, Task> execute)
+    {
+        _execute = execute;
+    }
+
+    public event EventHandler? CanExecuteChanged
+    {
+        add => CommandManager.RequerySuggested += value;
+        remove => CommandManager.RequerySuggested -= value;
+    }
+
+    public bool CanExecute(object? parameter) => !_isRunning && parameter is T;
+
+    public async void Execute(object? parameter)
+    {
+        if (_isRunning || parameter is not T value)
+        {
+            return;
+        }
+
+        _isRunning = true;
+        CommandManager.InvalidateRequerySuggested();
+        try
+        {
+            await _execute(value);
+        }
+        finally
+        {
+            _isRunning = false;
+            CommandManager.InvalidateRequerySuggested();
+        }
+    }
+}
