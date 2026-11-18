@@ -4,6 +4,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:vm="clr-namespace:SareeBilling.Desktop.ViewModels"
+        xmlns:nav="clr-namespace:SareeBilling.Desktop.Navigation"
         mc:Ignorable="d"
         d:DataContext="{d:DesignInstance Type=vm:MainViewModel}"
         Title="Saree Billing - GST Invoicing"
@@ -13,6 +14,12 @@
         FontFamily="Segoe UI" FontSize="14"
         Background="{StaticResource WindowBackgroundBrush}"
         Foreground="{StaticResource TextPrimaryBrush}">
+    <!-- Shortcuts work from every page, like Tally (F8 = sales). -->
+    <Window.InputBindings>
+        <KeyBinding Key="F8" Command="{Binding OpenPageCommand}" CommandParameter="{x:Static nav:AppPage.CreateInvoice}" />
+        <KeyBinding Key="D" Modifiers="Control" Command="{Binding OpenPageCommand}" CommandParameter="{x:Static nav:AppPage.Dashboard}" />
+        <KeyBinding Key="H" Modifiers="Control" Command="{Binding OpenPageCommand}" CommandParameter="{x:Static nav:AppPage.InvoiceHistory}" />
+    </Window.InputBindings>
     <Grid>
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="240" />
@@ -32,23 +39,45 @@
                 <TextBlock Text="GST Invoicing" Foreground="{StaticResource SidebarMutedTextBrush}" FontSize="13" />
             </StackPanel>
 
-            <ListBox Grid.Row="1"
-                     ItemsSource="{Binding NavigationItems}"
-                     SelectedItem="{Binding SelectedNavigationItem}"
-                     ItemContainerStyle="{StaticResource SidebarItem}"
-                     Background="Transparent" BorderThickness="0"
-                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                     AutomationProperties.Name="Main menu">
-                <ListBox.ItemTemplate>
-                    <DataTemplate DataType="{x:Type vm:NavigationItem}">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock FontFamily="{StaticResource IconFont}" Text="{Binding Glyph}"
-                                       FontSize="16" Width="28" VerticalAlignment="Center" />
-                            <TextBlock Text="{Binding Title}" VerticalAlignment="Center" />
-                        </StackPanel>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
+            <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                          Focusable="False">
+                <ItemsControl ItemsSource="{Binding NavigationGroups}" Focusable="False"
+                              KeyboardNavigation.TabNavigation="Continue"
+                              AutomationProperties.Name="Main menu">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate DataType="{x:Type vm:NavigationGroup}">
+                            <StackPanel Margin="0,0,0,4">
+                                <ToggleButton Style="{StaticResource SidebarGroupHeader}"
+                                              Content="{Binding Title}"
+                                              IsChecked="{Binding IsExpanded}"
+                                              Visibility="{Binding HasHeader, Converter={StaticResource BoolToVisibility}}"
+                                              AutomationProperties.Name="{Binding Title}" />
+                                <ItemsControl ItemsSource="{Binding Items}" Focusable="False"
+                                              Visibility="{Binding IsExpanded, Converter={StaticResource BoolToVisibility}}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate DataType="{x:Type vm:NavigationItem}">
+                                            <Button Style="{StaticResource SidebarNavButton}"
+                                                    Command="{Binding DataContext.NavigateCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                                    CommandParameter="{Binding}"
+                                                    AutomationProperties.Name="{Binding AutomationName}">
+                                                <DockPanel>
+                                                    <TextBlock DockPanel.Dock="Right" Text="{Binding Shortcut}" FontSize="11"
+                                                               VerticalAlignment="Center" Margin="8,0,0,0"
+                                                               Foreground="{StaticResource SidebarMutedTextBrush}" />
+                                                    <TextBlock FontFamily="{StaticResource IconFont}" Text="{Binding Glyph}"
+                                                               FontSize="15" Width="28" VerticalAlignment="Center" />
+                                                    <TextBlock Text="{Binding Title}" VerticalAlignment="Center"
+                                                               TextTrimming="CharacterEllipsis" />
+                                                </DockPanel>
+                                            </Button>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
 
             <TextBlock Grid.Row="2" Margin="20,12,20,16" FontSize="12"
                        Foreground="{StaticResource SidebarMutedTextBrush}" Text="{Binding AppVersion}" />

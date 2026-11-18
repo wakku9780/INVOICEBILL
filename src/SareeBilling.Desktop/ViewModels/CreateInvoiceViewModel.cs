@@ -94,7 +94,7 @@ public sealed class CreateInvoiceViewModel : PageViewModel
     /// <summary>Raised after an item is added so the view can put the cursor back in Description.</summary>
     public event EventHandler? LineAdded;
 
-    public override string Title => "Create Invoice";
+    public override string Title => "Sales Invoice";
 
     // ---------- Lists for drop-downs ----------
     public ObservableCollection<CustomerDto> Customers { get; } = [];

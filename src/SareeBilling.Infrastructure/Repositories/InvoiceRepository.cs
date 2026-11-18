@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SareeBilling.Application.Abstractions;
+using SareeBilling.Application.Dashboard;
 using SareeBilling.Application.Invoices;
 using SareeBilling.Domain.Common;
 using SareeBilling.Domain.Entities;
@@ -117,6 +118,19 @@ internal sealed class InvoiceRepository : IInvoiceRepository
             .Take(maxResults)
             .Select(i => new InvoiceSummary(
                 i.Id, i.InvoiceNumber, i.InvoiceDate, i.BuyerName, i.BuyerGstin,
+                i.TaxableTotal, i.TotalTax, i.GrandTotal, i.Status))
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<SalesRow>> ListSalesAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken = default)
+    {
+        await using var db = await _contextFactory.CreateDbContextAsync(cancellationToken);
+
+        // Amounts are stored as text, so they are added up in memory by the dashboard service.
+        return await db.Invoices.AsNoTracking()
+            .Where(i => i.InvoiceDate >= from && i.InvoiceDate <= to)
+            .Select(i => new SalesRow(
+                i.Id, i.InvoiceNumber, i.SequenceNumber, i.InvoiceDate, i.CustomerId, i.BuyerName,
                 i.TaxableTotal, i.TotalTax, i.GrandTotal, i.Status))
             .ToListAsync(cancellationToken);
     }

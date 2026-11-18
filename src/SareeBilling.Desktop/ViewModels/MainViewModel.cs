@@ -5,14 +5,10 @@ using SareeBilling.Desktop.Services;
 
 namespace SareeBilling.Desktop.ViewModels;
 
-/// <summary>One entry in the sidebar. Glyph is a Segoe MDL2 Assets icon code.</summary>
-public sealed record NavigationItem(AppPage Page, string Title, string Glyph);
-
 public sealed class MainViewModel : ObservableObject
 {
     private readonly INavigationService _navigation;
     private readonly IUpdateCoordinator _updates;
-    private NavigationItem? _selectedNavigationItem;
 
     public MainViewModel(INavigationService navigation, IUpdateCoordinator updates)
     {
@@ -33,6 +29,9 @@ public sealed class MainViewModel : ObservableObject
                 _updates.RemindLater(release);
             }
         });
+
+        NavigateCommand = new RelayCommand<NavigationItem>(item => _navigation.NavigateTo(item.Page));
+        OpenPageCommand = new RelayCommand<AppPage>(page => _navigation.NavigateTo(page));
     }
 
     /// <summary>A small banner (not a pop-up) so an update never interrupts invoice work.</summary>
@@ -46,14 +45,33 @@ public sealed class MainViewModel : ObservableObject
 
     public ICommand RemindUpdateLaterCommand { get; }
 
-    public IReadOnlyList<NavigationItem> NavigationItems { get; } =
+    /// <summary>Sidebar item click: opens that page (the current page may refuse to close).</summary>
+    public ICommand NavigateCommand { get; }
+
+    /// <summary>Keyboard shortcuts pass the target AppPage as CommandParameter.</summary>
+    public ICommand OpenPageCommand { get; }
+
+    /// <summary>
+    /// The sidebar. Only screens that exist are listed; new groups (PURCHASE, ACCOUNTS, REPORTS)
+    /// are added when their screens are built.
+    /// </summary>
+    public IReadOnlyList<NavigationGroup> NavigationGroups { get; } =
     [
-        new(AppPage.Dashboard, "Dashboard", ""),
-        new(AppPage.CreateInvoice, "Create Invoice", ""),
-        new(AppPage.Customers, "Customers", ""),
-        new(AppPage.InvoiceHistory, "Invoice History", ""),
-        new(AppPage.CompanySettings, "Company Settings", ""),
-        new(AppPage.BackupRestore, "Backup & Restore", "")
+        new(null,
+        [
+            new(AppPage.Dashboard, "Dashboard", "", "Ctrl+D")
+        ]),
+        new("SALES",
+        [
+            new(AppPage.CreateInvoice, "Sales Invoice", "", "F8"),
+            new(AppPage.InvoiceHistory, "Invoice History", "", "Ctrl+H"),
+            new(AppPage.Customers, "Customers", "")
+        ]),
+        new("SETTINGS",
+        [
+            new(AppPage.CompanySettings, "Company Settings", ""),
+            new(AppPage.BackupRestore, "Backup & Restore", "")
+        ])
     ];
 
     public PageViewModel? CurrentPage => _navigation.CurrentPage;
@@ -61,37 +79,23 @@ public sealed class MainViewModel : ObservableObject
     public string AppVersion { get; } =
         "Version " + (typeof(MainViewModel).Assembly.GetName().Version?.ToString(3) ?? "1.0.0");
 
-    /// <summary>Bound to the sidebar list; selecting an item opens that page.</summary>
-    public NavigationItem? SelectedNavigationItem
-    {
-        get => _selectedNavigationItem;
-        set
-        {
-            var previous = _selectedNavigationItem;
-            if (SetProperty(ref _selectedNavigationItem, value) && value is not null &&
-                !_navigation.NavigateTo(value.Page))
-            {
-                // The page refused to close: put the sidebar highlight back once the
-                // list box has finished its own selection change.
-                _selectedNavigationItem = previous;
-                System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(
-                    () => OnPropertyChanged(nameof(SelectedNavigationItem)));
-            }
-        }
-    }
-
     /// <summary>Asked when the main window is closing; false keeps the app open.</summary>
     public bool ConfirmClose() => _navigation.CurrentPage?.ConfirmLeave() ?? true;
 
     private void OnNavigated(object? sender, EventArgs e)
     {
-        // Keep the sidebar highlight in sync when navigation starts elsewhere
-        // (e.g. a dashboard quick-action button).
-        var match = NavigationItems.FirstOrDefault(i => i.Page == _navigation.CurrentPageKey);
-        if (!Equals(match, _selectedNavigationItem))
+        // Keep the sidebar highlight in sync wherever navigation started (sidebar, shortcut,
+        // dashboard button), and open the group that holds the current page.
+        foreach (var group in NavigationGroups)
         {
-            _selectedNavigationItem = match;
-            OnPropertyChanged(nameof(SelectedNavigationItem));
+            foreach (var item in group.Items)
+            {
+                item.IsSelected = item.Page == _navigation.CurrentPageKey;
+                if (item.IsSelected)
+                {
+                    group.IsExpanded = true;
+                }
+            }
         }
 
         OnPropertyChanged(nameof(CurrentPage));
