@@ -74,8 +74,7 @@ public sealed class ReceivablesMigrationTests : IDisposable
             Assert.Equal(30, customer.CreditDays);
 
             Assert.Equal(2, (await db.InvoiceCounters.SingleAsync()).LastNumber);
-            var counter = await db.VoucherCounters.SingleAsync();
-            Assert.Equal(VoucherType.Receipt, counter.VoucherType);
+            var counter = await db.VoucherCounters.SingleAsync(c => c.VoucherType == VoucherType.Receipt);
             Assert.Equal(0, counter.LastNumber);
             Assert.Empty(await db.Receipts.ToListAsync());
         }

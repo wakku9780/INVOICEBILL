@@ -24,4 +24,8 @@ public sealed record InvoiceSummary(
     decimal TaxableTotal,
     decimal TotalTax,
     decimal GrandTotal,
-    InvoiceStatus Status);
+    InvoiceStatus Status)
+{
+    /// <summary>Total of the credit notes (not cancelled) issued against this invoice.</summary>
+    public decimal Credited { get; init; }
+}

@@ -54,6 +54,20 @@ public sealed record DashboardSummary(
 
     public int ReceiptCount { get; init; }
 
+    /// <summary>Credit notes (not cancelled) dated in the period, with GST.</summary>
+    public decimal Returns { get; init; }
+
+    /// <summary>GST reduced by those credit notes.</summary>
+    public decimal ReturnsTax { get; init; }
+
+    public int CreditNoteCount { get; init; }
+
+    /// <summary>Sales less credit notes.</summary>
+    public decimal NetSales => Sales - Returns;
+
+    /// <summary>GST on invoices less GST reduced by credit notes (net output GST).</summary>
+    public decimal NetGst => GstCollected - ReturnsTax;
+
     public ReceivablesPosition Receivables { get; init; } = new(default, 0, 0, 0, 0, 0, []);
 }
 
@@ -66,8 +80,11 @@ public interface IDashboardService
     Task<DashboardSummary> GetSummaryAsync(DateRange range, CancellationToken cancellationToken = default);
 }
 
-public sealed class DashboardService(IInvoiceRepository invoices, IReceivablesRepository receivables, TimeProvider timeProvider)
-    : IDashboardService
+public sealed class DashboardService(
+    IInvoiceRepository invoices,
+    IReceivablesRepository receivables,
+    ICreditNoteRepository creditNotes,
+    TimeProvider timeProvider) : IDashboardService
 {
     public const int TopCustomerCount = 5;
     public const int RecentInvoiceCount = 8;
@@ -81,6 +98,7 @@ public sealed class DashboardService(IInvoiceRepository invoices, IReceivablesRe
         var readFrom = range.From < trendStart ? range.From : trendStart;
         var rows = await invoices.ListSalesAsync(readFrom, range.To, cancellationToken);
         var receipts = await receivables.ListReceiptsAsync(readFrom, range.To, cancellationToken);
+        var notes = await creditNotes.ListAsync(range.From, range.To, cancellationToken);
         var accounts = await receivables.GetAllAccountsAsync(cancellationToken);
         var today = DateOnly.FromDateTime(timeProvider.GetLocalNow().DateTime);
 
@@ -90,6 +108,9 @@ public sealed class DashboardService(IInvoiceRepository invoices, IReceivablesRe
         {
             Collections = Money.Round2(inPeriod.Sum(r => r.Amount)),
             ReceiptCount = inPeriod.Count,
+            Returns = Money.Round2(notes.Sum(n => n.GrandTotal)),
+            ReturnsTax = Money.Round2(notes.Sum(n => n.TotalTax)),
+            CreditNoteCount = notes.Count,
             Receivables = Position(accounts, today)
         };
     }

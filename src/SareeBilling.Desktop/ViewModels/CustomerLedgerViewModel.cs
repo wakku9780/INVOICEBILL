@@ -22,7 +22,7 @@ public sealed record LedgerRowView(LedgerEntry Entry)
     public string DebitText => Entry.Debit == 0 ? string.Empty : IndianFormat.Amount(Entry.Debit);
     public string CreditText => Entry.Credit == 0 ? string.Empty : IndianFormat.Amount(Entry.Credit);
     public string BalanceText => LedgerFormat.Balance(Entry.Balance);
-    public bool CanOpen => Entry.Type is LedgerEntryType.SalesInvoice or LedgerEntryType.Receipt;
+    public bool CanOpen => Entry.Type is LedgerEntryType.SalesInvoice or LedgerEntryType.Receipt or LedgerEntryType.CreditNote;
 }
 
 public sealed class CustomerLedgerViewModel : PageViewModel
@@ -74,6 +74,7 @@ public sealed class CustomerLedgerViewModel : PageViewModel
             new("All entries", null),
             new("Sales invoices", [LedgerEntryType.SalesInvoice]),
             new("Receipts", [LedgerEntryType.Receipt]),
+            new("Credit notes", [LedgerEntryType.CreditNote]),
             new("Opening entries", [LedgerEntryType.OpeningBill, LedgerEntryType.OpeningAdvance])
         ];
         _selectedFilter = Filters[0];
@@ -267,6 +268,10 @@ public sealed class CustomerLedgerViewModel : PageViewModel
         else if (entry.Type == LedgerEntryType.Receipt)
         {
             _documents.Preview(await WithWaitCursor(() => _printing.ReceiptAsync(entry.SourceId)));
+        }
+        else if (entry.Type == LedgerEntryType.CreditNote)
+        {
+            _documents.Preview(await WithWaitCursor(() => _printing.CreditNoteAsync(entry.SourceId)));
         }
     }
 

@@ -240,27 +240,32 @@ internal sealed class ReceivablesRepository(IDbContextFactory<AppDbContext> cont
     /// <summary>"Old bill 145" — how an opening bill is shown next to invoice numbers.</summary>
     internal static string OldBillLabel(string billNumber) => "Old bill " + billNumber;
 
-    private static BillAllocation NewAllocation(int customerId, DateOnly on, CreditRef credit, BillRef bill, decimal amount) => new()
+    internal static BillAllocation NewAllocation(int customerId, DateOnly on, CreditRef credit, BillRef bill, decimal amount) => new()
     {
         CustomerId = customerId,
         AllocatedOn = on,
         ReceiptId = credit.Kind == CreditKind.Receipt ? credit.Id : null,
         OpeningCreditId = credit.Kind == CreditKind.OpeningCredit ? credit.Id : null,
+        CreditNoteId = credit.Kind == CreditKind.CreditNote ? credit.Id : null,
         InvoiceId = bill.Kind == BillKind.Invoice ? bill.Id : null,
         OpeningBillId = bill.Kind == BillKind.OpeningBill ? bill.Id : null,
         Amount = amount
     };
 
     /// <summary>The larger of the counter and the highest saved receipt, plus one; the counter is moved on.</summary>
-    private static async Task<int> NextNumberAsync(AppDbContext db, CancellationToken cancellationToken)
+    private static async Task<int> NextNumberAsync(AppDbContext db, CancellationToken cancellationToken) =>
+        await NextVoucherNumberAsync(db, VoucherType.Receipt,
+            await db.Receipts.MaxAsync(r => (int?)r.SequenceNumber, cancellationToken) ?? 0, cancellationToken);
+
+    /// <summary>The larger of the series counter and <paramref name="highestUsed"/>, plus one; the counter is moved on.</summary>
+    internal static async Task<int> NextVoucherNumberAsync(AppDbContext db, VoucherType type, int highestUsed, CancellationToken cancellationToken)
     {
-        var counter = await db.VoucherCounters.FindAsync([VoucherType.Receipt], cancellationToken);
-        var highest = await db.Receipts.MaxAsync(r => (int?)r.SequenceNumber, cancellationToken) ?? 0;
-        var next = Math.Max(counter?.LastNumber ?? 0, highest) + 1;
+        var counter = await db.VoucherCounters.FindAsync([type], cancellationToken);
+        var next = Math.Max(counter?.LastNumber ?? 0, highestUsed) + 1;
 
         if (counter is null)
         {
-            db.VoucherCounters.Add(new VoucherCounter { VoucherType = VoucherType.Receipt, LastNumber = next });
+            db.VoucherCounters.Add(new VoucherCounter { VoucherType = type, LastNumber = next });
         }
         else
         {
@@ -271,7 +276,7 @@ internal sealed class ReceivablesRepository(IDbContextFactory<AppDbContext> cont
     }
 
     /// <summary>Builds bill-wise accounts from saved documents. Amounts are TEXT in SQLite, so they are added up here.</summary>
-    private static async Task<List<CustomerAccount>> LoadAccountsAsync(AppDbContext db, int? customerId, CancellationToken cancellationToken)
+    internal static async Task<List<CustomerAccount>> LoadAccountsAsync(AppDbContext db, int? customerId, CancellationToken cancellationToken)
     {
         var customers = await db.Customers.AsNoTracking()
             .Where(c => customerId == null || c.Id == customerId)
@@ -292,6 +297,11 @@ internal sealed class ReceivablesRepository(IDbContextFactory<AppDbContext> cont
             .Select(r => new { r.Id, r.CustomerId, r.ReceiptNumber, r.ReceiptDate, r.Amount, r.Mode, r.Reference })
             .ToListAsync(cancellationToken);
 
+        var creditNotes = await db.CreditNotes.AsNoTracking()
+            .Where(c => c.Status == VoucherStatus.Posted && (customerId == null || c.CustomerId == customerId))
+            .Select(c => new { c.Id, c.CustomerId, c.CreditNoteNumber, c.CreditNoteDate, c.Kind, c.InvoiceNumber, c.GrandTotal, c.Reason })
+            .ToListAsync(cancellationToken);
+
         var allocations = await db.BillAllocations.AsNoTracking()
             .Where(a => customerId == null || a.CustomerId == customerId)
             .ToListAsync(cancellationToken);
@@ -306,7 +316,9 @@ internal sealed class ReceivablesRepository(IDbContextFactory<AppDbContext> cont
             a.InvoiceId is { } i ? new BillRef(BillKind.Invoice, i) : new BillRef(BillKind.OpeningBill, a.OpeningBillId!.Value);
 
         static CreditRef SourceOf(BillAllocation a) =>
-            a.ReceiptId is { } r ? new CreditRef(CreditKind.Receipt, r) : new CreditRef(CreditKind.OpeningCredit, a.OpeningCreditId!.Value);
+            a.ReceiptId is { } r ? new CreditRef(CreditKind.Receipt, r)
+            : a.CreditNoteId is { } c ? new CreditRef(CreditKind.CreditNote, c)
+            : new CreditRef(CreditKind.OpeningCredit, a.OpeningCreditId!.Value);
 
         var settledByBill = allocations.GroupBy(TargetOf).ToDictionary(g => g.Key, g => g.Sum(a => a.Amount));
         var allocationsByCredit = allocations.GroupBy(SourceOf).ToDictionary(g => g.Key, g => g.ToList());
@@ -365,6 +377,26 @@ internal sealed class ReceivablesRepository(IDbContextFactory<AppDbContext> cont
                 }
 
                 credits.Add(new AccountCredit(key, r.ReceiptNumber, r.ReceiptDate, r.Amount, usedTotal, string.Join(" · ", parts), settled));
+            }
+
+            foreach (var c in creditNotes.Where(c => c.CustomerId == customer.Id))
+            {
+                var key = new CreditRef(CreditKind.CreditNote, c.Id);
+                var used = allocationsByCredit.GetValueOrDefault(key) ?? [];
+                var usedTotal = used.Sum(a => a.Amount);
+                var parts = new List<string>
+                {
+                    (c.Kind == CreditNoteKind.GoodsReturn ? "Goods returned" : "Rate difference / discount") + " on invoice " + c.InvoiceNumber,
+                    c.Reason
+                };
+
+                if (usedTotal < c.GrandTotal)
+                {
+                    parts.Add("advance " + IndianFormat.Amount(c.GrandTotal - usedTotal));
+                }
+
+                credits.Add(new AccountCredit(key, c.CreditNoteNumber, c.CreditNoteDate, c.GrandTotal, usedTotal,
+                    string.Join(" · ", parts), NumbersOf(used)));
             }
 
             if (customerId is null && bills.Count == 0 && credits.Count == 0)

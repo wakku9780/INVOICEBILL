@@ -27,19 +27,99 @@ internal sealed class InvoicePdfDocument : IDocument
     private readonly IReadOnlyList<InvoiceItem> _items;
     private readonly bool _isIntraState;
 
+    /// <summary>Set when this document prints a credit note (the invoice fields then hold the credit note's figures).</summary>
+    private readonly CreditNoteHeading? _creditNote;
+
     public InvoicePdfDocument(Invoice invoice, byte[]? logo)
+        : this(invoice, logo, null)
+    {
+    }
+
+    private InvoicePdfDocument(Invoice invoice, byte[]? logo, CreditNoteHeading? creditNote)
     {
         _invoice = invoice;
         _logo = logo is { Length: > 0 } ? logo : null;
         _items = invoice.Items.OrderBy(i => i.LineNumber).ToList();
         _isIntraState = invoice.TaxType == TaxType.IntraState;
+        _creditNote = creditNote;
     }
+
+    private sealed record CreditNoteHeading(
+        string Number, DateOnly Date, CreditNoteKind Kind, string Reason, bool IsCancelled, string? CancellationReason);
+
+    /// <summary>
+    /// A GST credit note in the same layout as the tax invoice: the same seller, buyer, GST type and
+    /// HSN summary, headed "Credit Note" with the original invoice number and date.
+    /// </summary>
+    public static InvoicePdfDocument ForCreditNote(CreditNote note, byte[]? logo)
+    {
+        ArgumentNullException.ThrowIfNull(note);
+
+        var invoice = new Invoice
+        {
+            InvoiceNumber = note.InvoiceNumber,
+            InvoiceDate = note.InvoiceDate,
+            SellerName = note.SellerName,
+            SellerAddress = note.SellerAddress,
+            SellerGstin = note.SellerGstin,
+            SellerState = note.SellerState,
+            SellerStateCode = note.SellerStateCode,
+            SellerPhone = note.SellerPhone,
+            SellerEmail = note.SellerEmail,
+            BuyerName = note.BuyerName,
+            BuyerAddress = note.BuyerAddress,
+            BuyerGstin = note.BuyerGstin,
+            BuyerState = note.BuyerState,
+            BuyerStateCode = note.BuyerStateCode,
+            BuyerPhone = note.BuyerPhone,
+            TaxType = note.TaxType,
+            TotalQuantity = note.TotalQuantity,
+            TaxableTotal = note.TaxableTotal,
+            CgstTotal = note.CgstTotal,
+            SgstTotal = note.SgstTotal,
+            IgstTotal = note.IgstTotal,
+            TotalTax = note.TotalTax,
+            RoundOff = note.RoundOff,
+            GrandTotal = note.GrandTotal,
+            AmountInWords = note.AmountInWords,
+            Items = note.Items.Select(i => new InvoiceItem
+            {
+                LineNumber = i.LineNumber,
+                Description = i.Description,
+                HsnCode = i.HsnCode,
+                Quantity = i.Quantity,
+                Unit = i.Unit,
+                Rate = i.Rate,
+                TaxableAmount = i.TaxableAmount,
+                GstRate = i.GstRate,
+                CgstRate = i.CgstRate,
+                CgstAmount = i.CgstAmount,
+                SgstRate = i.SgstRate,
+                SgstAmount = i.SgstAmount,
+                IgstRate = i.IgstRate,
+                IgstAmount = i.IgstAmount,
+                LineTotal = i.LineTotal
+            }).ToList()
+        };
+
+        return new InvoicePdfDocument(invoice, logo, new CreditNoteHeading(
+            note.CreditNoteNumber, note.CreditNoteDate, note.Kind, note.Reason,
+            note.Status == VoucherStatus.Cancelled, note.CancellationReason));
+    }
+
+    private bool IsCreditNote => _creditNote is not null;
+
+    private bool IsCancelled => _creditNote?.IsCancelled ?? _invoice.Status == InvoiceStatus.Cancelled;
+
+    private string? CancellationReason => _creditNote is not null ? _creditNote.CancellationReason : _invoice.CancellationReason;
+
+    private string DocumentTitle => IsCreditNote ? "Credit Note" : "Tax Invoice";
 
     public DocumentMetadata GetMetadata() => new()
     {
-        Title = $"Tax Invoice {_invoice.InvoiceNumber}",
+        Title = $"{DocumentTitle} {_creditNote?.Number ?? _invoice.InvoiceNumber}",
         Author = _invoice.SellerName,
-        Subject = $"Tax Invoice for {_invoice.BuyerName}",
+        Subject = $"{DocumentTitle} for {_invoice.BuyerName}",
         Creator = "Saree Billing",
         Producer = "Saree Billing"
     };
@@ -70,14 +150,14 @@ internal sealed class InvoicePdfDocument : IDocument
             page.Footer().PaddingTop(4).AlignCenter().Text(text =>
             {
                 text.DefaultTextStyle(t => t.FontSize(SmallSize));
-                text.Span("This is a Computer Generated Invoice");
+                text.Span(IsCreditNote ? "This is a Computer Generated Credit Note" : "This is a Computer Generated Invoice");
                 text.Span("        Page ");
                 text.CurrentPageNumber();
                 text.Span(" of ");
                 text.TotalPages();
             });
 
-            if (_invoice.Status == InvoiceStatus.Cancelled)
+            if (IsCancelled)
             {
                 // Semi-transparent red (ARGB) so the figures underneath stay readable.
                 page.Foreground().AlignCenter().AlignMiddle().Rotate(-35)
@@ -92,18 +172,19 @@ internal sealed class InvoicePdfDocument : IDocument
     {
         container.Column(column =>
         {
-            column.Item().AlignCenter().Text("Tax Invoice").Bold().FontSize(13);
+            column.Item().AlignCenter().Text(DocumentTitle).Bold().FontSize(13);
 
-            if (_invoice.Status == InvoiceStatus.Cancelled)
+            if (IsCancelled)
             {
-                var reason = string.IsNullOrWhiteSpace(_invoice.CancellationReason) ? string.Empty : $" - {_invoice.CancellationReason}";
+                var reason = string.IsNullOrWhiteSpace(CancellationReason) ? string.Empty : $" - {CancellationReason}";
                 column.Item().AlignCenter().Text($"CANCELLED{reason}").Bold().FontColor(Colors.Red.Darken2);
             }
 
-            // From page 2 onwards, say which invoice the page belongs to.
-            column.Item().SkipOnce().AlignCenter()
-                .Text($"Invoice No. {_invoice.InvoiceNumber} dated {FormatDate(_invoice.InvoiceDate)} (continued)")
-                .FontSize(SmallSize).Italic();
+            // From page 2 onwards, say which document the page belongs to.
+            var continued = _creditNote is { } cn
+                ? $"Credit Note No. {cn.Number} dated {FormatDate(cn.Date)} (continued)"
+                : $"Invoice No. {_invoice.InvoiceNumber} dated {FormatDate(_invoice.InvoiceDate)} (continued)";
+            column.Item().SkipOnce().AlignCenter().Text(continued).FontSize(SmallSize).Italic();
         });
     }
 
@@ -178,6 +259,23 @@ internal sealed class InvoicePdfDocument : IDocument
 
     private void ComposeReferences(IContainer container)
     {
+        if (_creditNote is { } cn)
+        {
+            container.Column(c =>
+            {
+                ReferencePair(c, "Credit Note No.", cn.Number, "Dated", FormatDate(cn.Date));
+                ReferencePair(c, "Original Invoice No.", _invoice.InvoiceNumber, "Invoice Dated", FormatDate(_invoice.InvoiceDate));
+                ReferencePair(c, "Type", cn.Kind == CreditNoteKind.GoodsReturn ? "Sales return (goods received back)" : "Reduction in value",
+                    "Place of Supply", $"{_invoice.BuyerState} ({_invoice.BuyerStateCode})");
+                c.Item().Padding(3).Column(cell =>
+                {
+                    cell.Item().Text("Reason").FontSize(SmallSize);
+                    cell.Item().MinHeight(12).Text(cn.Reason).Bold();
+                });
+            });
+            return;
+        }
+
         container.Column(c =>
         {
             ReferencePair(c, "Invoice No.", _invoice.InvoiceNumber, "Dated", FormatDate(_invoice.InvoiceDate));
@@ -249,9 +347,11 @@ internal sealed class InvoicePdfDocument : IDocument
                 Cell(table).AlignCenter().Text(item.LineNumber.ToString(Invariant));
                 Cell(table).Text(item.Description).Bold();
                 Cell(table).AlignCenter().Text(item.HsnCode);
-                Cell(table).AlignRight().Text($"{IndianFormat.Quantity(item.Quantity)} {item.Unit}").Bold();
-                Cell(table).AlignRight().Text(IndianFormat.Amount(item.Rate));
-                Cell(table).AlignCenter().Text(item.Unit);
+                // A reduction in value (no goods back) has no quantity or rate.
+                var hasQuantity = item.Quantity != 0;
+                Cell(table).AlignRight().Text(hasQuantity ? $"{IndianFormat.Quantity(item.Quantity)} {item.Unit}" : string.Empty).Bold();
+                Cell(table).AlignRight().Text(hasQuantity ? IndianFormat.Amount(item.Rate) : string.Empty);
+                Cell(table).AlignCenter().Text(hasQuantity ? item.Unit : string.Empty);
                 Cell(table, last: true).AlignRight().Text(IndianFormat.Amount(item.TaxableAmount)).Bold();
             }
 
@@ -314,6 +414,11 @@ internal sealed class InvoicePdfDocument : IDocument
 
     private string TotalQuantityText()
     {
+        if (_invoice.TotalQuantity == 0)
+        {
+            return string.Empty;
+        }
+
         var units = _items.Select(i => i.Unit).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
         var quantity = IndianFormat.Quantity(_invoice.TotalQuantity);
         return units.Count == 1 ? $"{quantity} {units[0]}" : quantity;
@@ -349,7 +454,7 @@ internal sealed class InvoicePdfDocument : IDocument
         {
             row.RelativeItem().Column(c =>
             {
-                c.Item().Text("Amount Chargeable (in words)").FontSize(SmallSize);
+                c.Item().Text(IsCreditNote ? "Amount Credited (in words)" : "Amount Chargeable (in words)").FontSize(SmallSize);
                 c.Item().Text(_invoice.AmountInWords).Bold();
             });
             row.AutoItem().AlignBottom().Text("E. & O.E").Italic();
@@ -495,6 +600,14 @@ internal sealed class InvoicePdfDocument : IDocument
         {
             row.RelativeItem().Padding(4).Column(c =>
             {
+                if (IsCreditNote)
+                {
+                    c.Item().Text("Declaration").Bold().Underline();
+                    c.Item().Text($"Your account has been credited with the amount above against Invoice No. {_invoice.InvoiceNumber} " +
+                                  $"dated {FormatDate(_invoice.InvoiceDate)}. The GST shown is reduced accordingly.");
+                    return;
+                }
+
                 if (!string.IsNullOrWhiteSpace(_invoice.SellerBankName) || !string.IsNullOrWhiteSpace(_invoice.SellerBankAccountNumber))
                 {
                     c.Item().Text("Company's Bank Details").Bold();

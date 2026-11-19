@@ -281,13 +281,17 @@ public sealed class DashboardViewModel : PageViewModel
             ? FormatDate(summary.Range.From)
             : $"{FormatDate(summary.Range.From)} to {FormatDate(summary.Range.To)}";
 
-        SalesText = IndianFormat.Amount(summary.Sales);
-        SalesNote = summary.CancelledCount == 0
-            ? Plural(summary.InvoiceCount, "invoice")
-            : $"{Plural(summary.InvoiceCount, "invoice")} · {summary.CancelledCount} cancelled";
-        TaxableText = IndianFormat.Amount(summary.TaxableValue);
-        GstText = IndianFormat.Amount(summary.GstCollected);
-        GstNote = "CGST + SGST + IGST";
+        // Sales and GST are net of credit notes (sales returns) dated in the period.
+        SalesText = IndianFormat.Amount(summary.NetSales);
+        SalesNote = Plural(summary.InvoiceCount, "invoice") +
+                    (summary.CancelledCount == 0 ? string.Empty : $" · {summary.CancelledCount} cancelled") +
+                    (summary.CreditNoteCount == 0 ? string.Empty : $" · returns {IndianFormat.Amount(summary.Returns)}");
+        var netTaxable = summary.TaxableValue - (summary.Returns - summary.ReturnsTax);
+        TaxableText = IndianFormat.Amount(netTaxable);
+        GstText = IndianFormat.Amount(summary.NetGst);
+        GstNote = summary.CreditNoteCount == 0
+            ? $"on taxable {TaxableText}"
+            : $"on taxable {TaxableText} · {IndianFormat.Amount(summary.ReturnsTax)} reduced by credit notes";
         CustomersText = summary.CustomersBilled.ToString(CultureInfo.InvariantCulture);
         CustomersNote = summary.InvoiceCount == 0
             ? "No sales in this period"

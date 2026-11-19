@@ -135,6 +135,8 @@ public partial class App : System.Windows.Application
         builder.Services.AddTransient<ReceiptsViewModel>();
         builder.Services.AddTransient<CustomerLedgerViewModel>();
         builder.Services.AddTransient<OutstandingReceivablesViewModel>();
+        builder.Services.AddTransient<CreditNoteViewModel>();
+        builder.Services.AddTransient<CreditNotesViewModel>();
         builder.Services.AddTransient<NewCustomerDialogViewModel>();
 
         return builder.Build();

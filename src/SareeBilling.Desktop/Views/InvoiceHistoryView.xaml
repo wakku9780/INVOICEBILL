@@ -47,6 +47,8 @@
         <DockPanel Grid.Row="1" Margin="0,0,0,10">
             <Button DockPanel.Dock="Right" Style="{StaticResource DangerButton}" Content="Cancel invoice…"
                     Command="{Binding CancelInvoiceCommand}" />
+            <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" Content="Create credit note (return)"
+                    Command="{Binding CreateCreditNoteCommand}" Margin="0,0,8,0" />
             <StackPanel Orientation="Horizontal">
                 <Button Style="{StaticResource PrimaryButton}" Content="Open / Preview" Command="{Binding PreviewCommand}" />
                 <Button Style="{StaticResource SecondaryButton}" Content="Print…" Command="{Binding PrintCommand}"
@@ -87,6 +89,8 @@
                 <DataGridTextColumn Header="GST" Binding="{Binding TaxText}" Width="110"
                                     ElementStyle="{StaticResource GridCellText}" />
                 <DataGridTextColumn Header="Grand total" Binding="{Binding GrandTotalText}" Width="130"
+                                    ElementStyle="{StaticResource GridCellText}" />
+                <DataGridTextColumn Header="Returned" Binding="{Binding ReturnedText}" Width="110"
                                     ElementStyle="{StaticResource GridCellText}" />
                 <DataGridTextColumn Header="Status" Binding="{Binding StatusText}" Width="95"
                                     ElementStyle="{StaticResource GridCellText}" />

@@ -64,9 +64,9 @@ internal sealed class BillAllocationConfiguration : IEntityTypeConfiguration<Bil
     {
         builder.ToTable("BillAllocations", t =>
         {
-            // Exactly one source (receipt or opening advance) and one target (invoice or opening bill).
+            // Exactly one source (receipt, opening advance or credit note) and one target (invoice or opening bill).
             t.HasCheckConstraint("CK_BillAllocations_OneSource",
-                "(\"ReceiptId\" IS NOT NULL) + (\"OpeningCreditId\" IS NOT NULL) = 1");
+                "(\"ReceiptId\" IS NOT NULL) + (\"OpeningCreditId\" IS NOT NULL) + (\"CreditNoteId\" IS NOT NULL) = 1");
             t.HasCheckConstraint("CK_BillAllocations_OneTarget",
                 "(\"InvoiceId\" IS NOT NULL) + (\"OpeningBillId\" IS NOT NULL) = 1");
             t.HasCheckConstraint("CK_BillAllocations_Amount", "CAST(\"Amount\" AS REAL) > 0");
@@ -77,6 +77,7 @@ internal sealed class BillAllocationConfiguration : IEntityTypeConfiguration<Bil
 
         builder.HasOne(a => a.Receipt).WithMany().HasForeignKey(a => a.ReceiptId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(a => a.OpeningCredit).WithMany().HasForeignKey(a => a.OpeningCreditId).OnDelete(DeleteBehavior.Restrict);
+        builder.HasOne(a => a.CreditNote).WithMany().HasForeignKey(a => a.CreditNoteId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(a => a.Invoice).WithMany().HasForeignKey(a => a.InvoiceId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne(a => a.OpeningBill).WithMany().HasForeignKey(a => a.OpeningBillId).OnDelete(DeleteBehavior.Restrict);
         builder.HasOne<Customer>().WithMany().HasForeignKey(a => a.CustomerId).OnDelete(DeleteBehavior.Restrict);

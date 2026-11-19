@@ -75,7 +75,7 @@
                 </Border>
                 <Border Style="{StaticResource StatCard}">
                     <StackPanel>
-                        <TextBlock Style="{StaticResource StatLabel}" Text="Total credit (received)" />
+                        <TextBlock Style="{StaticResource StatLabel}" Text="Total credit (received / returned)" />
                         <TextBlock Style="{StaticResource StatValue}" Text="{Binding TotalCreditText}" />
                     </StackPanel>
                 </Border>
@@ -110,6 +110,6 @@
 
         <TextBlock Grid.Row="4" Style="{StaticResource HintText}" Margin="0,8,0,0" TextWrapping="Wrap"
                    Visibility="{Binding HasLedger, Converter={StaticResource BoolToVisibility}}"
-                   Text="Dr = the customer owes you. Cr = advance held for the customer. Double-click an invoice or receipt to open it. Cancelled invoices and receipts are not shown." />
+                   Text="Dr = the customer owes you. Cr = advance held for the customer. Double-click an invoice, receipt or credit note to open it. Cancelled entries are not shown." />
     </Grid>
 </UserControl>

@@ -1,6 +1,7 @@
 using SareeBilling.Application.Abstractions;
 using SareeBilling.Application.Common;
 using SareeBilling.Domain.Common;
+using SareeBilling.Domain.Entities;
 using SareeBilling.Domain.Enums;
 
 namespace SareeBilling.Application.Receivables;
@@ -23,6 +24,9 @@ public interface IAccountsPdfRenderer
     (byte[] Pdf, IReadOnlyList<byte[]> PageImages) RenderStatement(CompanyHeader company, CustomerLedger ledger, int dpi);
 
     (byte[] Pdf, IReadOnlyList<byte[]> PageImages) RenderOutstanding(CompanyHeader company, OutstandingReport report, int dpi);
+
+    /// <summary>A4 GST credit note in the same layout as the tax invoice.</summary>
+    (byte[] Pdf, IReadOnlyList<byte[]> PageImages) RenderCreditNote(CreditNote note, byte[]? logo, int dpi);
 }
 
 public interface IAccountsPrintService
@@ -32,14 +36,33 @@ public interface IAccountsPrintService
     Task<DocumentPrintout> StatementAsync(CustomerLedger ledger, CancellationToken cancellationToken = default);
 
     Task<DocumentPrintout> OutstandingAsync(OutstandingReport report, CancellationToken cancellationToken = default);
+
+    Task<DocumentPrintout> CreditNoteAsync(int creditNoteId, CancellationToken cancellationToken = default);
 }
 
 public sealed class AccountsPrintService(
     IReceivablesRepository receivables,
+    ICreditNoteRepository creditNotes,
     ICompanyProfileRepository companyProfiles,
     IAccountsPdfRenderer renderer) : IAccountsPrintService
 {
     public const int PrintDpi = 300;
+
+    public async Task<DocumentPrintout> CreditNoteAsync(int creditNoteId, CancellationToken cancellationToken = default)
+    {
+        var note = await creditNotes.GetAsync(creditNoteId, cancellationToken)
+                   ?? throw new ValidationException(["This credit note no longer exists."]);
+
+        // As with invoices, the logo is the only detail taken from current settings.
+        var logo = (await companyProfiles.GetAsync(cancellationToken))?.Logo;
+        var (pdf, pages) = await Task.Run(() => renderer.RenderCreditNote(note, logo, PrintDpi), cancellationToken);
+        return new DocumentPrintout(
+            $"Credit note {note.CreditNoteNumber} - {note.BuyerName}",
+            note.Status == VoucherStatus.Cancelled,
+            SafeFileName($"CreditNote-{note.CreditNoteNumber}.pdf"),
+            pdf,
+            pages);
+    }
 
     public async Task<DocumentPrintout> ReceiptAsync(int receiptId, CancellationToken cancellationToken = default)
     {

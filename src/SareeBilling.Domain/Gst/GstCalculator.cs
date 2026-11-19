@@ -71,17 +71,31 @@ public static class GstCalculator
             throw new ArgumentOutOfRangeException(nameof(line), "GST rate must be between 0 and 100.");
         }
 
-        var taxable = Money.Round2(line.Quantity * line.Rate);
+        return CalculateOnTaxable(Money.Round2(line.Quantity * line.Rate), line.GstRate, taxType);
+    }
+
+    /// <summary>GST on an already-known taxable amount (used by credit notes), rounded exactly as invoice lines are.</summary>
+    public static GstLineResult CalculateOnTaxable(decimal taxable, decimal gstRate, TaxType taxType)
+    {
+        if (taxable < 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(taxable), "Taxable amount cannot be negative.");
+        }
+
+        if (gstRate is < 0 or > 100)
+        {
+            throw new ArgumentOutOfRangeException(nameof(gstRate), "GST rate must be between 0 and 100.");
+        }
 
         if (taxType == TaxType.IntraState)
         {
-            var halfRate = line.GstRate / 2;
+            var halfRate = gstRate / 2;
             var half = Money.Round2(taxable * halfRate / 100);
-            return new GstLineResult(taxable, line.GstRate, halfRate, half, halfRate, half, 0m, 0m);
+            return new GstLineResult(taxable, gstRate, halfRate, half, halfRate, half, 0m, 0m);
         }
 
-        var igst = Money.Round2(taxable * line.GstRate / 100);
-        return new GstLineResult(taxable, line.GstRate, 0m, 0m, 0m, 0m, line.GstRate, igst);
+        var igst = Money.Round2(taxable * gstRate / 100);
+        return new GstLineResult(taxable, gstRate, 0m, 0m, 0m, 0m, gstRate, igst);
     }
 
     public static GstInvoiceResult Calculate(
