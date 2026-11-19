@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using SareeBilling.Application.Abstractions;
+using SareeBilling.Application.CreditNotes;
 using SareeBilling.Application.Dashboard;
 using SareeBilling.Application.Invoices;
 using SareeBilling.Domain.Common;
@@ -112,7 +113,7 @@ internal sealed class InvoiceRepository : IInvoiceRepository
         }
 
         // Dates are stored as yyyy-MM-dd text, so they sort correctly in SQLite.
-        return await query
+        var found = await query
             .OrderByDescending(i => i.InvoiceDate)
             .ThenByDescending(i => i.Id)
             .Take(maxResults)
@@ -120,6 +121,16 @@ internal sealed class InvoiceRepository : IInvoiceRepository
                 i.Id, i.InvoiceNumber, i.InvoiceDate, i.BuyerName, i.BuyerGstin,
                 i.TaxableTotal, i.TotalTax, i.GrandTotal, i.Status))
             .ToListAsync(cancellationToken);
+
+        var ids = found.Select(i => i.Id).ToList();
+        var credited = (await db.CreditNotes.AsNoTracking()
+                .Where(c => c.Status == VoucherStatus.Posted && ids.Contains(c.InvoiceId))
+                .Select(c => new { c.InvoiceId, c.GrandTotal })
+                .ToListAsync(cancellationToken))
+            .GroupBy(c => c.InvoiceId)
+            .ToDictionary(g => g.Key, g => g.Sum(c => c.GrandTotal));
+
+        return found.Select(i => credited.TryGetValue(i.Id, out var amount) ? i with { Credited = amount } : i).ToList();
     }
 
     public async Task<IReadOnlyList<SalesRow>> ListSalesAsync(DateOnly from, DateOnly to, CancellationToken cancellationToken = default)
@@ -141,6 +152,13 @@ internal sealed class InvoiceRepository : IInvoiceRepository
         await using var transaction = await db.Database.BeginTransactionAsync(cancellationToken);
         var invoice = await db.Invoices.FindAsync([id], cancellationToken)
                       ?? throw new InvalidOperationException("This invoice no longer exists.");
+
+        // A credit note must always point to a valid invoice.
+        var creditNotes = await CreditNoteRepository.ActiveNumbersAsync(db, id, cancellationToken);
+        if (creditNotes.Count > 0)
+        {
+            throw new Application.Common.ValidationException([CreditNoteMessages.BlockInvoiceCancel(invoice.InvoiceNumber, creditNotes)]);
+        }
 
         // Money already received against it stays with the customer as advance.
         await db.BillAllocations.Where(a => a.InvoiceId == id).ExecuteDeleteAsync(cancellationToken);

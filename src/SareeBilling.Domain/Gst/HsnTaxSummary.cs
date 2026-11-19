@@ -26,6 +26,20 @@ public static class HsnTaxSummary
     {
         ArgumentNullException.ThrowIfNull(items);
 
+        return Summarise(items.Select(i => new HsnTaxSummaryLine(
+            i.HsnCode, i.GstRate, i.TaxableAmount, i.CgstRate, i.CgstAmount, i.SgstRate, i.SgstAmount, i.IgstRate, i.IgstAmount)));
+    }
+
+    public static IReadOnlyList<HsnTaxSummaryLine> From(IEnumerable<CreditNoteItem> items)
+    {
+        ArgumentNullException.ThrowIfNull(items);
+
+        return Summarise(items.Select(i => new HsnTaxSummaryLine(
+            i.HsnCode, i.GstRate, i.TaxableAmount, i.CgstRate, i.CgstAmount, i.SgstRate, i.SgstAmount, i.IgstRate, i.IgstAmount)));
+    }
+
+    private static IReadOnlyList<HsnTaxSummaryLine> Summarise(IEnumerable<HsnTaxSummaryLine> items)
+    {
         return items
             .GroupBy(i => (i.HsnCode, i.GstRate))
             .OrderBy(g => g.Key.HsnCode, StringComparer.Ordinal)

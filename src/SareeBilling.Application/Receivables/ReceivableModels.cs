@@ -11,11 +11,12 @@ public enum BillKind
 
 public readonly record struct BillRef(BillKind Kind, int Id);
 
-/// <summary>Money on the customer's side: a receipt or an old (opening) advance.</summary>
+/// <summary>Value on the customer's side: a receipt, an old (opening) advance or a credit note.</summary>
 public enum CreditKind
 {
     Receipt = 1,
-    OpeningCredit = 2
+    OpeningCredit = 2,
+    CreditNote = 3
 }
 
 public readonly record struct CreditRef(CreditKind Kind, int Id);
@@ -38,7 +39,7 @@ public sealed record AccountBill(
     public int DaysOverdue(DateOnly today) => Math.Max(0, today.DayNumber - DueDate.DayNumber);
 }
 
-/// <summary>A receipt or opening advance with how much of it has been matched to bills. Cancelled receipts are never included.</summary>
+/// <summary>A receipt, opening advance or credit note with how much of it has been matched to bills. Cancelled ones are never included.</summary>
 public sealed record AccountCredit(
     CreditRef Ref,
     string Number,

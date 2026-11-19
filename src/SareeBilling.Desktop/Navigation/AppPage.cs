@@ -12,5 +12,7 @@ public enum AppPage
     ReceivePayment,
     Receipts,
     CustomerLedger,
-    OutstandingReceivables
+    OutstandingReceivables,
+    CreditNote,
+    CreditNotes
 }

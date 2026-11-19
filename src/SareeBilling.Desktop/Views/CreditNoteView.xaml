@@ -1,0 +1,212 @@
+<UserControl x:Class="SareeBilling.Desktop.Views.CreditNoteView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="clr-namespace:SareeBilling.Desktop.ViewModels"
+             mc:Ignorable="d"
+             d:DataContext="{d:DesignInstance Type=vm:CreditNoteViewModel}">
+    <UserControl.InputBindings>
+        <KeyBinding Key="S" Modifiers="Control" Command="{Binding SaveCommand}" />
+    </UserControl.InputBindings>
+
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+        <StackPanel Margin="0,0,16,16" MaxWidth="1200" HorizontalAlignment="Left">
+
+            <!-- ===== Which invoice ===== -->
+            <Border Style="{StaticResource Card}" Padding="20,16">
+                <StackPanel>
+                    <DockPanel>
+                        <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="All credit notes"
+                                Command="{Binding OpenListCommand}" VerticalAlignment="Bottom" Margin="12,0,0,14" />
+                        <StackPanel Style="{StaticResource Field}" Width="260" HorizontalAlignment="Left">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Against invoice no. *" />
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" Content="Load"
+                                        Command="{Binding LoadInvoiceCommand}" Margin="8,0,0,0" />
+                                <TextBox Text="{Binding InvoiceNumberText, UpdateSourceTrigger=PropertyChanged}" Tag="e.g. 161"
+                                         AutomationProperties.Name="Invoice number">
+                                    <TextBox.InputBindings>
+                                        <KeyBinding Key="Return" Command="{Binding LoadInvoiceCommand}" />
+                                    </TextBox.InputBindings>
+                                </TextBox>
+                            </DockPanel>
+                        </StackPanel>
+                    </DockPanel>
+
+                    <StackPanel Visibility="{Binding HasInvoice, Converter={StaticResource BoolToVisibility}}">
+                        <DockPanel>
+                            <Button DockPanel.Dock="Right" Style="{StaticResource LinkButton}" Content="Customer ledger"
+                                    Command="{Binding OpenLedgerCommand}" VerticalAlignment="Center" />
+                            <TextBlock Text="{Binding InvoiceHeader}" FontSize="15" FontWeight="SemiBold" TextWrapping="Wrap" />
+                        </DockPanel>
+                        <TextBlock Style="{StaticResource MutedText}" Text="{Binding InvoiceDetails}" TextWrapping="Wrap" Margin="0,4,0,0" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- ===== Details and lines ===== -->
+            <Border Style="{StaticResource Card}" Padding="0" Margin="0,16,0,0"
+                    Visibility="{Binding CanEdit, Converter={StaticResource BoolToVisibility}}">
+                <StackPanel>
+                    <Grid Margin="20,16,20,0">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="24" />
+                            <ColumnDefinition Width="170" />
+                            <ColumnDefinition Width="16" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Grid.Column="0" Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="What is this credit note for? *" />
+                            <StackPanel Orientation="Horizontal" Margin="0,6,0,0">
+                                <RadioButton Content="Goods returned" IsChecked="{Binding IsGoodsReturn}" GroupName="Kind"
+                                             Margin="0,0,20,0" />
+                                <RadioButton Content="Rate difference / discount" IsChecked="{Binding IsAmountOnly}" GroupName="Kind" />
+                            </StackPanel>
+                        </StackPanel>
+                        <StackPanel Grid.Column="2" Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Date *" />
+                            <DatePicker SelectedDate="{Binding CreditNoteDate}" AutomationProperties.Name="Credit note date" />
+                        </StackPanel>
+                        <StackPanel Grid.Column="4" Style="{StaticResource Field}">
+                            <TextBlock Style="{StaticResource FieldLabel}" Text="Reason *" />
+                            <TextBox Text="{Binding Reason, UpdateSourceTrigger=PropertyChanged}" MaxLength="1000"
+                                     Tag="e.g. 5 pieces returned damaged" AutomationProperties.Name="Reason" />
+                        </StackPanel>
+                    </Grid>
+
+                    <Border Margin="20,0,20,12" Padding="12,8" CornerRadius="6" BorderThickness="1"
+                            Background="{StaticResource ReceivableBackgroundBrush}" BorderBrush="{StaticResource ReceivableBorderBrush}"
+                            Visibility="{Binding DeadlineWarning, Converter={StaticResource VisibleWhenNotEmpty}}">
+                        <TextBlock Text="{Binding DeadlineWarning}" TextWrapping="Wrap" Foreground="{StaticResource ReceivableBrush}"
+                                   FontWeight="SemiBold" />
+                    </Border>
+
+                    <DockPanel Margin="20,4,20,10">
+                        <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                            <Button Style="{StaticResource SecondaryButton}" Content="Return everything left"
+                                    Command="{Binding ReturnAllCommand}"
+                                    Visibility="{Binding IsGoodsReturn, Converter={StaticResource BoolToVisibility}}" />
+                            <Button Style="{StaticResource SecondaryButton}" Content="Clear" Margin="8,0,0,0" Command="{Binding ClearCommand}" />
+                        </StackPanel>
+                        <StackPanel>
+                            <TextBlock Style="{StaticResource SectionTitleText}" Text="Items on the invoice" />
+                            <TextBlock Style="{StaticResource MutedText}" FontSize="12" Text="{Binding KindHint}" TextWrapping="Wrap" />
+                        </StackPanel>
+                    </DockPanel>
+
+                    <DataGrid ItemsSource="{Binding Lines}" IsReadOnly="False" BorderThickness="0,1,0,1" MaxHeight="420"
+                              AutomationProperties.Name="Invoice lines">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="#" Binding="{Binding LineNumber}" Width="40" IsReadOnly="True"
+                                                ElementStyle="{StaticResource GridCellText}" />
+                            <DataGridTextColumn Header="Description" Binding="{Binding Description}" Width="2*" IsReadOnly="True"
+                                                ElementStyle="{StaticResource GridCellText}" />
+                            <DataGridTextColumn Header="HSN" Binding="{Binding HsnCode}" Width="70" IsReadOnly="True"
+                                                ElementStyle="{StaticResource GridCellText}" />
+                            <DataGridTextColumn Header="Billed" Binding="{Binding BilledText}" Width="100" IsReadOnly="True"
+                                                ElementStyle="{StaticResource AmountCellText}" />
+                            <DataGridTextColumn Header="Rate" Binding="{Binding RateText}" Width="100" IsReadOnly="True"
+                                                ElementStyle="{StaticResource AmountCellText}" />
+                            <DataGridTextColumn Header="GST" Binding="{Binding GstText}" Width="60" IsReadOnly="True"
+                                                ElementStyle="{StaticResource AmountCellText}" />
+                            <DataGridTextColumn Header="Returned" Binding="{Binding ReturnedText}" Width="100" IsReadOnly="True"
+                                                ElementStyle="{StaticResource AmountCellText}" />
+                            <DataGridTemplateColumn Width="110" IsReadOnly="True">
+                                <DataGridTemplateColumn.Header>
+                                    <TextBlock Text="{Binding DataContext.RemainingHeader, RelativeSource={RelativeSource AncestorType=DataGrid}}" />
+                                </DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate DataType="{x:Type vm:CreditLineRow}">
+                                        <Grid Margin="10,0">
+                                            <TextBlock Text="{Binding RemainingQuantityText}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                       Visibility="{Binding DataContext.IsGoodsReturn, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BoolToVisibility}}" />
+                                            <TextBlock Text="{Binding RemainingValueText}" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                                       Visibility="{Binding DataContext.IsAmountOnly, RelativeSource={RelativeSource AncestorType=DataGrid}, Converter={StaticResource BoolToVisibility}}" />
+                                        </Grid>
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTemplateColumn Width="130">
+                                <DataGridTemplateColumn.Header>
+                                    <TextBlock Text="{Binding DataContext.InputHeader, RelativeSource={RelativeSource AncestorType=DataGrid}}" />
+                                </DataGridTemplateColumn.Header>
+                                <DataGridTemplateColumn.CellTemplate>
+                                    <DataTemplate DataType="{x:Type vm:CreditLineRow}">
+                                        <TextBox Text="{Binding InputText, UpdateSourceTrigger=PropertyChanged}" TextAlignment="Right"
+                                                 Margin="6,3" Padding="4,2" MinHeight="0" IsEnabled="{Binding CanCredit}"
+                                                 AutomationProperties.Name="{Binding LineNumber, StringFormat=Credit line {0}}" />
+                                    </DataTemplate>
+                                </DataGridTemplateColumn.CellTemplate>
+                            </DataGridTemplateColumn>
+                            <DataGridTextColumn Header="Value (₹)" Binding="{Binding CreditText}" Width="120" IsReadOnly="True"
+                                                ElementStyle="{StaticResource AmountCellText}" />
+                        </DataGrid.Columns>
+                    </DataGrid>
+
+                    <!-- Totals, as they will be printed -->
+                    <Grid Margin="20,12,20,14" HorizontalAlignment="Right" MinWidth="320">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="140" />
+                        </Grid.ColumnDefinitions>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <TextBlock Grid.Row="0" Text="Taxable value" Foreground="{StaticResource TextSecondaryBrush}" />
+                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding TaxableText}" TextAlignment="Right" />
+                        <TextBlock Grid.Row="1" Text="CGST" Foreground="{StaticResource TextSecondaryBrush}"
+                                   Visibility="{Binding IsIntraState, Converter={StaticResource BoolToVisibility}}" />
+                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding CgstText}" TextAlignment="Right"
+                                   Visibility="{Binding IsIntraState, Converter={StaticResource BoolToVisibility}}" />
+                        <TextBlock Grid.Row="2" Text="SGST" Foreground="{StaticResource TextSecondaryBrush}"
+                                   Visibility="{Binding IsIntraState, Converter={StaticResource BoolToVisibility}}" />
+                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding SgstText}" TextAlignment="Right"
+                                   Visibility="{Binding IsIntraState, Converter={StaticResource BoolToVisibility}}" />
+                        <TextBlock Grid.Row="3" Text="IGST" Foreground="{StaticResource TextSecondaryBrush}"
+                                   Visibility="{Binding IsInterState, Converter={StaticResource BoolToVisibility}}" />
+                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding IgstText}" TextAlignment="Right"
+                                   Visibility="{Binding IsInterState, Converter={StaticResource BoolToVisibility}}" />
+                        <TextBlock Grid.Row="4" Text="Round off" Foreground="{StaticResource TextSecondaryBrush}" />
+                        <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding RoundOffText}" TextAlignment="Right" />
+                        <TextBlock Grid.Row="5" Text="Credit note total (₹)" FontWeight="SemiBold" FontSize="15" Margin="0,6,0,0" />
+                        <TextBlock Grid.Row="5" Grid.Column="1" Text="{Binding TotalText}" TextAlignment="Right" FontWeight="SemiBold"
+                                   FontSize="15" Margin="0,6,0,0" />
+                    </Grid>
+                    <TextBlock Margin="20,0,20,8" HorizontalAlignment="Right" Text="{Binding EffectText}"
+                               Foreground="{StaticResource SuccessTextBrush}" FontWeight="SemiBold" TextWrapping="Wrap" />
+                    <TextBlock Margin="20,0,20,12" HorizontalAlignment="Right" Text="{Binding PreviewProblem}"
+                               Foreground="{StaticResource ErrorTextBrush}" FontWeight="SemiBold" TextWrapping="Wrap"
+                               Visibility="{Binding PreviewProblem, Converter={StaticResource VisibleWhenNotEmpty}}" />
+                </StackPanel>
+            </Border>
+
+            <!-- ===== Messages and buttons ===== -->
+            <Border Style="{StaticResource ErrorBox}" Margin="0,16,0,0"
+                    Visibility="{Binding ErrorMessage, Converter={StaticResource VisibleWhenNotEmpty}}">
+                <TextBlock Text="{Binding ErrorMessage}" TextWrapping="Wrap" />
+            </Border>
+            <Border Style="{StaticResource SuccessBox}" Margin="0,16,0,0"
+                    Visibility="{Binding SuccessMessage, Converter={StaticResource VisibleWhenNotEmpty}}">
+                <DockPanel>
+                    <Button DockPanel.Dock="Right" Style="{StaticResource SecondaryButton}" Content="Print credit note"
+                            Command="{Binding PrintLastCommand}" Margin="12,0,0,0"
+                            Visibility="{Binding CanPrintLast, Converter={StaticResource BoolToVisibility}}" />
+                    <TextBlock Text="{Binding SuccessMessage}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                </DockPanel>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,16,0,0"
+                        Visibility="{Binding CanEdit, Converter={StaticResource BoolToVisibility}}">
+                <TextBlock Style="{StaticResource MutedText}" Text="Ctrl+S" VerticalAlignment="Center" Margin="0,0,10,0" />
+                <Button Style="{StaticResource PrimaryButton}" Content="Save credit note" MinWidth="150" Command="{Binding SaveCommand}" />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</UserControl>

@@ -2,6 +2,7 @@ using System.IO;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 using SareeBilling.Application.Common;
+using SareeBilling.Application.CreditNotes;
 using SareeBilling.Application.Invoices;
 using SareeBilling.Application.Receivables;
 using SareeBilling.Domain.Common;
@@ -30,6 +31,7 @@ public sealed class InvoiceActions : IInvoiceActions
     private readonly IInvoicePrintService _printing;
     private readonly IInvoiceService _invoices;
     private readonly IReceiptService _receipts;
+    private readonly ICreditNoteService _creditNotes;
     private readonly IDocumentActions _documents;
     private readonly IDialogService _dialogs;
 
@@ -37,12 +39,14 @@ public sealed class InvoiceActions : IInvoiceActions
         IInvoicePrintService printing,
         IInvoiceService invoices,
         IReceiptService receipts,
+        ICreditNoteService creditNotes,
         IDocumentActions documents,
         IDialogService dialogs)
     {
         _printing = printing;
         _invoices = invoices;
         _receipts = receipts;
+        _creditNotes = creditNotes;
         _documents = documents;
         _dialogs = dialogs;
     }
@@ -55,6 +59,15 @@ public sealed class InvoiceActions : IInvoiceActions
 
     public async Task<bool> CancelAsync(int invoiceId, string invoiceNumber)
     {
+        // A credit note must always point to a valid invoice: say so before asking for a reason.
+        var creditNotes = await _creditNotes.GetActiveNumbersForInvoiceAsync(invoiceId);
+        if (creditNotes.Count > 0)
+        {
+            _dialogs.ShowError(CreditNoteMessages.BlockInvoiceCancel(invoiceNumber, creditNotes) +
+                               "\n\nCredit notes can be cancelled from the Credit Notes page.");
+            return false;
+        }
+
         // Money already received against the invoice is not lost: it becomes the customer's advance.
         var received = await _receipts.GetSettledAmountForInvoiceAsync(invoiceId);
         var paymentNote = received > 0

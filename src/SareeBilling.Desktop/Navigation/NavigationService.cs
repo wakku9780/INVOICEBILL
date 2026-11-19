@@ -77,6 +77,8 @@ public sealed class NavigationService : INavigationService
         AppPage.Receipts => _services.GetRequiredService<ReceiptsViewModel>(),
         AppPage.CustomerLedger => _services.GetRequiredService<CustomerLedgerViewModel>(),
         AppPage.OutstandingReceivables => _services.GetRequiredService<OutstandingReceivablesViewModel>(),
+        AppPage.CreditNote => _services.GetRequiredService<CreditNoteViewModel>(),
+        AppPage.CreditNotes => _services.GetRequiredService<CreditNotesViewModel>(),
         _ => throw new ArgumentOutOfRangeException(nameof(page), page, null)
     };
 }

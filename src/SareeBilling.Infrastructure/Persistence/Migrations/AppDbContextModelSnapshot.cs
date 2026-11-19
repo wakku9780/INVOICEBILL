@@ -33,6 +33,9 @@ namespace SareeBilling.Infrastructure.Persistence.Migrations
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("TEXT");
 
+                    b.Property<int?>("CreditNoteId")
+                        .HasColumnType("INTEGER");
+
                     b.Property<int>("CustomerId")
                         .HasColumnType("INTEGER");
 
@@ -53,6 +56,8 @@ namespace SareeBilling.Infrastructure.Persistence.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("CreditNoteId");
+
                     b.HasIndex("CustomerId");
 
                     b.HasIndex("InvoiceId");
@@ -67,7 +72,7 @@ namespace SareeBilling.Infrastructure.Persistence.Migrations
                         {
                             t.HasCheckConstraint("CK_BillAllocations_Amount", "CAST(\"Amount\" AS REAL) > 0");
 
-                            t.HasCheckConstraint("CK_BillAllocations_OneSource", "(\"ReceiptId\" IS NOT NULL) + (\"OpeningCreditId\" IS NOT NULL) = 1");
+                            t.HasCheckConstraint("CK_BillAllocations_OneSource", "(\"ReceiptId\" IS NOT NULL) + (\"OpeningCreditId\" IS NOT NULL) + (\"CreditNoteId\" IS NOT NULL) = 1");
 
                             t.HasCheckConstraint("CK_BillAllocations_OneTarget", "(\"InvoiceId\" IS NOT NULL) + (\"OpeningBillId\" IS NOT NULL) = 1");
                         });
@@ -159,6 +164,280 @@ namespace SareeBilling.Infrastructure.Persistence.Migrations
                     b.ToTable("CompanyProfile", null, t =>
                         {
                             t.HasCheckConstraint("CK_CompanyProfile_SingleRow", "\"Id\" = 1");
+                        });
+                });
+
+            modelBuilder.Entity("SareeBilling.Domain.Entities.CreditNote", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("AmountInWords")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BuyerAddress")
+                        .IsRequired()
+                        .HasMaxLength(600)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BuyerGstin")
+                        .HasMaxLength(15)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BuyerName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BuyerPhone")
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BuyerState")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("BuyerStateCode")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CancellationReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("CancelledAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("CgstTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("CreditNoteDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("CreditNoteNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CustomerId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("GrandTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("IgstTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateOnly>("InvoiceDate")
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("InvoiceId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("InvoiceNumber")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Kind")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(1000)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("RoundOff")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SellerAddress")
+                        .IsRequired()
+                        .HasMaxLength(600)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SellerEmail")
+                        .HasMaxLength(150)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SellerGstin")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SellerName")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SellerPhone")
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SellerState")
+                        .IsRequired()
+                        .HasMaxLength(60)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("SellerStateCode")
+                        .IsRequired()
+                        .HasMaxLength(2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("SequenceNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("SgstTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("TaxType")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("TaxableTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TotalQuantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TotalTax")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<DateTime?>("UpdatedAtUtc")
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("CreditNoteDate");
+
+                    b.HasIndex("CreditNoteNumber")
+                        .IsUnique();
+
+                    b.HasIndex("CustomerId");
+
+                    b.HasIndex("InvoiceId");
+
+                    b.ToTable("CreditNotes", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CreditNotes_GrandTotal", "CAST(\"GrandTotal\" AS REAL) > 0");
+
+                            t.HasCheckConstraint("CK_CreditNotes_Kind", "\"Kind\" IN (1, 2)");
+
+                            t.HasCheckConstraint("CK_CreditNotes_SequenceNumber", "\"SequenceNumber\" > 0");
+
+                            t.HasCheckConstraint("CK_CreditNotes_Status", "\"Status\" IN (1, 2)");
+
+                            t.HasCheckConstraint("CK_CreditNotes_TaxType", "\"TaxType\" IN (1, 2)");
+                        });
+                });
+
+            modelBuilder.Entity("SareeBilling.Domain.Entities.CreditNoteItem", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("CgstAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("CgstRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("CreditNoteId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<string>("Description")
+                        .IsRequired()
+                        .HasMaxLength(300)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("GstRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("HsnCode")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("IgstAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("IgstRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<int>("InvoiceItemId")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<int>("LineNumber")
+                        .HasColumnType("INTEGER");
+
+                    b.Property<decimal>("LineTotal")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Quantity")
+                        .HasPrecision(18, 3)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("Rate")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("SgstAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("SgstRate")
+                        .HasPrecision(5, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<decimal>("TaxableAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("TEXT");
+
+                    b.Property<string>("Unit")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("TEXT");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InvoiceItemId");
+
+                    b.HasIndex("CreditNoteId", "LineNumber")
+                        .IsUnique();
+
+                    b.ToTable("CreditNoteItems", null, t =>
+                        {
+                            t.HasCheckConstraint("CK_CreditNoteItems_GstRate", "CAST(\"GstRate\" AS REAL) BETWEEN 0 AND 100");
+
+                            t.HasCheckConstraint("CK_CreditNoteItems_LineNumber", "\"LineNumber\" > 0");
+
+                            t.HasCheckConstraint("CK_CreditNoteItems_Quantity", "CAST(\"Quantity\" AS REAL) >= 0");
+
+                            t.HasCheckConstraint("CK_CreditNoteItems_TaxableAmount", "CAST(\"TaxableAmount\" AS REAL) > 0");
                         });
                 });
 
@@ -694,6 +973,11 @@ namespace SareeBilling.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("SareeBilling.Domain.Entities.BillAllocation", b =>
                 {
+                    b.HasOne("SareeBilling.Domain.Entities.CreditNote", "CreditNote")
+                        .WithMany()
+                        .HasForeignKey("CreditNoteId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("SareeBilling.Domain.Entities.Customer", null)
                         .WithMany()
                         .HasForeignKey("CustomerId")
@@ -720,6 +1004,8 @@ namespace SareeBilling.Infrastructure.Persistence.Migrations
                         .HasForeignKey("ReceiptId")
                         .OnDelete(DeleteBehavior.Restrict);
 
+                    b.Navigation("CreditNote");
+
                     b.Navigation("Invoice");
 
                     b.Navigation("OpeningBill");
@@ -727,6 +1013,44 @@ namespace SareeBilling.Infrastructure.Persistence.Migrations
                     b.Navigation("OpeningCredit");
 
                     b.Navigation("Receipt");
+                });
+
+            modelBuilder.Entity("SareeBilling.Domain.Entities.CreditNote", b =>
+                {
+                    b.HasOne("SareeBilling.Domain.Entities.Customer", "Customer")
+                        .WithMany()
+                        .HasForeignKey("CustomerId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("SareeBilling.Domain.Entities.Invoice", "Invoice")
+                        .WithMany()
+                        .HasForeignKey("InvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("Customer");
+
+                    b.Navigation("Invoice");
+                });
+
+            modelBuilder.Entity("SareeBilling.Domain.Entities.CreditNoteItem", b =>
+                {
+                    b.HasOne("SareeBilling.Domain.Entities.CreditNote", "CreditNote")
+                        .WithMany("Items")
+                        .HasForeignKey("CreditNoteId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("SareeBilling.Domain.Entities.InvoiceItem", "InvoiceItem")
+                        .WithMany()
+                        .HasForeignKey("InvoiceItemId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("CreditNote");
+
+                    b.Navigation("InvoiceItem");
                 });
 
             modelBuilder.Entity("SareeBilling.Domain.Entities.Invoice", b =>
@@ -771,6 +1095,11 @@ namespace SareeBilling.Infrastructure.Persistence.Migrations
                         .IsRequired();
 
                     b.Navigation("Customer");
+                });
+
+            modelBuilder.Entity("SareeBilling.Domain.Entities.CreditNote", b =>
+                {
+                    b.Navigation("Items");
                 });
 
             modelBuilder.Entity("SareeBilling.Domain.Entities.Customer", b =>

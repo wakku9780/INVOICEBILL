@@ -65,6 +65,8 @@ public sealed class MainViewModel : ObservableObject
         [
             new(AppPage.CreateInvoice, "Sales Invoice", "", "F8"),
             new(AppPage.InvoiceHistory, "Invoice History", "", "Ctrl+H"),
+            new(AppPage.CreditNote, "Credit Note","", "Ctrl+F8"),
+            new(AppPage.CreditNotes, "Credit Notes", ""),
             new(AppPage.Customers, "Customers", "")
         ]),
         new("ACCOUNTS",

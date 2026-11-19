@@ -17,6 +17,7 @@
     <!-- Shortcuts work from every page, like Tally (F8 = sales). -->
     <Window.InputBindings>
         <KeyBinding Key="F8" Command="{Binding OpenPageCommand}" CommandParameter="{x:Static nav:AppPage.CreateInvoice}" />
+        <KeyBinding Key="F8" Modifiers="Control" Command="{Binding OpenPageCommand}" CommandParameter="{x:Static nav:AppPage.CreditNote}" />
         <KeyBinding Key="F6" Command="{Binding OpenPageCommand}" CommandParameter="{x:Static nav:AppPage.ReceivePayment}" />
         <KeyBinding Key="D" Modifiers="Control" Command="{Binding OpenPageCommand}" CommandParameter="{x:Static nav:AppPage.Dashboard}" />
         <KeyBinding Key="H" Modifiers="Control" Command="{Binding OpenPageCommand}" CommandParameter="{x:Static nav:AppPage.InvoiceHistory}" />

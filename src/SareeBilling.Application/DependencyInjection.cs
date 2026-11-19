@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using SareeBilling.Application.CompanyProfiles;
+using SareeBilling.Application.CreditNotes;
 using SareeBilling.Application.Customers;
 using SareeBilling.Application.Dashboard;
 using SareeBilling.Application.Invoices;
@@ -22,6 +23,7 @@ public static class DependencyInjection
         services.AddTransient<ICustomerLedgerService, CustomerLedgerService>();
         services.AddTransient<IOutstandingReportService, OutstandingReportService>();
         services.AddTransient<IAccountsPrintService, AccountsPrintService>();
+        services.AddTransient<ICreditNoteService, CreditNoteService>();
         return services;
     }
 }

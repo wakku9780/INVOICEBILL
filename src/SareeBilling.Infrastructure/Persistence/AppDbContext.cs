@@ -23,6 +23,8 @@ public sealed class AppDbContext : DbContext
     public DbSet<Receipt> Receipts => Set<Receipt>();
     public DbSet<BillAllocation> BillAllocations => Set<BillAllocation>();
     public DbSet<VoucherCounter> VoucherCounters => Set<VoucherCounter>();
+    public DbSet<CreditNote> CreditNotes => Set<CreditNote>();
+    public DbSet<CreditNoteItem> CreditNoteItems => Set<CreditNoteItem>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

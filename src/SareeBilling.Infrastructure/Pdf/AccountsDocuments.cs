@@ -3,6 +3,7 @@ using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 using SareeBilling.Application.Receivables;
 using SareeBilling.Domain.Common;
+using SareeBilling.Domain.Entities;
 using SareeBilling.Domain.Enums;
 
 namespace SareeBilling.Infrastructure.Pdf;
@@ -23,6 +24,9 @@ internal sealed class QuestPdfAccountsRenderer : IAccountsPdfRenderer
 
     public (byte[] Pdf, IReadOnlyList<byte[]> PageImages) RenderOutstanding(CompanyHeader company, OutstandingReport report, int dpi) =>
         Render(new OutstandingDocument(company, report), dpi);
+
+    public (byte[] Pdf, IReadOnlyList<byte[]> PageImages) RenderCreditNote(CreditNote note, byte[]? logo, int dpi) =>
+        Render(InvoicePdfDocument.ForCreditNote(note, logo), dpi);
 
     private static (byte[], IReadOnlyList<byte[]>) Render(IDocument document, int dpi) =>
         (document.GeneratePdf(),

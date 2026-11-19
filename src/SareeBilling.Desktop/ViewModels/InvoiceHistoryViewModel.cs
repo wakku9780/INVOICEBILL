@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Windows.Input;
 using SareeBilling.Application.Invoices;
 using SareeBilling.Desktop.Mvvm;
+using SareeBilling.Desktop.Navigation;
 using SareeBilling.Desktop.Services;
 using SareeBilling.Domain.Common;
 using SareeBilling.Domain.Enums;
@@ -28,6 +29,9 @@ public sealed class InvoiceRowViewModel
     public string GrandTotalText => IndianFormat.Amount(Summary.GrandTotal);
     public bool IsCancelled => Summary.Status == InvoiceStatus.Cancelled;
     public string StatusText => IsCancelled ? "Cancelled" : "Final";
+
+    /// <summary>Total of credit notes against this invoice; empty when there are none.</summary>
+    public string ReturnedText => Summary.Credited == 0 ? string.Empty : IndianFormat.Amount(Summary.Credited);
 }
 
 public sealed class InvoiceHistoryViewModel : PageViewModel
@@ -51,9 +55,12 @@ public sealed class InvoiceHistoryViewModel : PageViewModel
         IInvoiceService invoices,
         IInvoiceActions actions,
         IDialogService dialogs,
+        INavigationService navigation,
         ErrorLog errorLog,
         TimeProvider timeProvider)
     {
+        CreateCreditNoteCommand = new RelayCommand(
+            () => navigation.NavigateTo(AppPage.CreditNote, SelectedInvoice!.Id), () => SelectedInvoice is { IsCancelled: false });
         _invoices = invoices;
         _actions = actions;
         _dialogs = dialogs;
@@ -80,6 +87,7 @@ public sealed class InvoiceHistoryViewModel : PageViewModel
     public ICommand PrintCommand { get; }
     public ICommand SavePdfCommand { get; }
     public ICommand CancelInvoiceCommand { get; }
+    public ICommand CreateCreditNoteCommand { get; }
     public ICommand ThisMonthCommand { get; }
     public ICommand ThisYearCommand { get; }
     public ICommand AllDatesCommand { get; }

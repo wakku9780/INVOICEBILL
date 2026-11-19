@@ -46,6 +46,12 @@
             <DataTemplate DataType="{x:Type vm:OutstandingReceivablesViewModel}">
                 <views:OutstandingReceivablesView />
             </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:CreditNoteViewModel}">
+                <views:CreditNoteView />
+            </DataTemplate>
+            <DataTemplate DataType="{x:Type vm:CreditNotesViewModel}">
+                <views:CreditNotesView />
+            </DataTemplate>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

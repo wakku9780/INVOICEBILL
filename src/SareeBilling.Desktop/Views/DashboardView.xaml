@@ -83,9 +83,10 @@
             <UniformGrid Rows="1">
                 <Border Style="{StaticResource StatCard}">
                     <StackPanel>
-                        <TextBlock Style="{StaticResource StatLabel}" Text="Sales (incl. GST)" />
+                        <TextBlock Style="{StaticResource StatLabel}" Text="Net sales (incl. GST)"
+                                   ToolTip="Invoices less credit notes (sales returns) in this period" />
                         <TextBlock Style="{StaticResource StatValue}" Text="{Binding SalesText}" />
-                        <TextBlock Style="{StaticResource StatNote}" Text="{Binding SalesNote}" />
+                        <TextBlock Style="{StaticResource StatNote}" Text="{Binding SalesNote}" TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
                 <Border Style="{StaticResource StatCard}">
@@ -98,11 +99,10 @@
                 </Border>
                 <Border Style="{StaticResource StatCard}">
                     <StackPanel>
-                        <TextBlock Style="{StaticResource StatLabel}" Text="GST collected" />
+                        <TextBlock Style="{StaticResource StatLabel}" Text="Net GST (output)"
+                                   ToolTip="GST on invoices less GST reduced by credit notes in this period" />
                         <TextBlock Style="{StaticResource StatValue}" Text="{Binding GstText}" />
-                        <TextBlock Style="{StaticResource StatNote}">
-                            <Run Text="on taxable" /> <Run Text="{Binding TaxableText, Mode=OneWay}" />
-                        </TextBlock>
+                        <TextBlock Style="{StaticResource StatNote}" Text="{Binding GstNote}" TextWrapping="Wrap" />
                     </StackPanel>
                 </Border>
                 <Border Style="{StaticResource StatCard}">

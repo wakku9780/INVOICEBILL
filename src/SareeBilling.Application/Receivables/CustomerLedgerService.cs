@@ -11,7 +11,8 @@ public enum LedgerEntryType
     OpeningBill,
     OpeningAdvance,
     SalesInvoice,
-    Receipt
+    Receipt,
+    CreditNote
 }
 
 /// <summary>One row of a customer ledger. <see cref="Balance"/> is the running balance after this row (+ = Dr).</summary>
@@ -42,8 +43,8 @@ public interface ICustomerLedgerService
 {
     /// <summary>
     /// The customer's ledger for the period: the balance brought forward from before
-    /// <paramref name="from"/>, then every invoice, receipt and opening entry with a running balance.
-    /// Cancelled invoices and receipts are left out.
+    /// <paramref name="from"/>, then every invoice, receipt, credit note and opening entry with a running balance.
+    /// Cancelled documents are left out.
     /// </summary>
     Task<CustomerLedger> GetAsync(int customerId, DateOnly from, DateOnly to, CancellationToken cancellationToken = default);
 }
@@ -68,11 +69,21 @@ public sealed class CustomerLedgerService(IReceivablesRepository repository) : I
             .Select(b => (b.Date, Type: b.Ref.Kind == BillKind.Invoice ? LedgerEntryType.SalesInvoice : LedgerEntryType.OpeningBill,
                           b.Number, b.Particulars, Debit: b.Total, Credit: 0m, b.Ref.Id))
             .Concat(account.Credits
-                .Select(c => (c.Date, Type: c.Ref.Kind == CreditKind.Receipt ? LedgerEntryType.Receipt : LedgerEntryType.OpeningAdvance,
+                .Select(c => (c.Date, Type: c.Ref.Kind switch
+                              {
+                                  CreditKind.Receipt => LedgerEntryType.Receipt,
+                                  CreditKind.CreditNote => LedgerEntryType.CreditNote,
+                                  _ => LedgerEntryType.OpeningAdvance
+                              },
                               c.Number, c.Particulars, Debit: 0m, Credit: c.Amount, c.Ref.Id)))
             .OrderBy(e => e.Date)
-            .ThenBy(e => e.Type is LedgerEntryType.OpeningBill or LedgerEntryType.OpeningAdvance ? 0
-                       : e.Type == LedgerEntryType.SalesInvoice ? 1 : 2)
+            .ThenBy(e => e.Type switch
+            {
+                LedgerEntryType.OpeningBill or LedgerEntryType.OpeningAdvance => 0,
+                LedgerEntryType.SalesInvoice => 1,
+                LedgerEntryType.CreditNote => 2,
+                _ => 3
+            })
             .ThenBy(e => e.Id)
             .ToList();
 
@@ -107,6 +118,7 @@ public static class LedgerFormat
         LedgerEntryType.OpeningAdvance => "Opening advance",
         LedgerEntryType.SalesInvoice => "Sales invoice",
         LedgerEntryType.Receipt => "Receipt",
+        LedgerEntryType.CreditNote => "Credit note",
         _ => type.ToString()
     };
 
